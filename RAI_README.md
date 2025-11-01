@@ -1,8 +1,8 @@
-# Responsible AI Transparency Documentation - Agent Lightning
+# Responsible AI Transparency Documentation - ManagedCode Agent Lightning
 
 ## OVERVIEW
 
-Agent Lightning is a flexible and extensible framework that enables seamless agent optimization for any existing agent framework. Agent optimization includes various data-driven techniques to customize the agent for better performance, including but not limited to model fine-tuning, prompt tuning, and model selection. And the agent frameworks refer to popular and easy-to-use agent developing frameworks such as OpenAI Agents SDK, Microsoft AutoGen, and LangChain.
+ManagedCode Agent Lightning is the .NET port of Microsoft’s Agent Lightning project. It is a flexible and extensible framework that enables seamless agent optimization for any existing agent framework. Agent optimization includes various data-driven techniques to customize the agent for better performance, including but not limited to model fine-tuning, prompt tuning, and model selection. The agent frameworks include popular and easy-to-use environments such as OpenAI Agents SDK, Microsoft AutoGen, and LangChain, as well as ManagedCode-first integrations that rely on `Microsoft.Extensions.AI`.
 
 ### WHAT CAN AGENT LIGHTNING DO
 Agent lightning was developed to bridge the gap between agent workflow development and agent optimization, empowering developers to go beyond static, pre-trained models and unlock the full potential of adaptive, learning-based agents. Agent Lightning is a training framework which can be used for any LLMs.

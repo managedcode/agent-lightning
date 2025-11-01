@@ -4,6 +4,14 @@ meta-llama/**
 debug/*.png
 requirements-freeze*.txt
 
+# .NET build artifacts
+bin/
+obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

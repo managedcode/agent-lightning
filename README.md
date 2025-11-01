@@ -1,109 +1,67 @@
-<p align="center">
-  <img src="docs/assets/readme-banner.svg" alt="Agent-lightning-banner" style="width:600px"/>
-</p>
+# ManagedCode Agent Lightning ⚡
 
-# Agent Lightning⚡
+> **ℹ️ This repository hosts the ManagedCode-maintained C# 13 / .NET 9 port of Microsoft’s Agent Lightning project.**  
+> The original Python implementation remains the functional reference and is mirrored under `external/microsoft-agent-lightning` as a read-only git submodule. All active development happens in the `ManagedCode.AgentLightning.*` C# projects.
 
-[![Test](https://github.com/microsoft/agent-lightning/actions/workflows/tests-full.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/tests-full.yml)
-[![Documentation](https://img.shields.io/badge/GitHub%20Pages-Documentation-blue)](https://microsoft.github.io/agent-lightning/)
-[![PyPI version](https://badge.fury.io/py/agentlightning.svg)](https://badge.fury.io/py/agentlightning)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/RYk7CdvDR7)
+## Overview
 
-**The absolute trainer to light up AI agents.**
+ManagedCode Agent Lightning brings Microsoft’s reinforcement-learning toolkit for AI agents to .NET.  
+The port mirrors the behaviour of the upstream Python implementation while taking advantage of `Microsoft.Extensions.AI`, the generic host, and modern C# features.
 
-Join our [Discord community](https://discord.gg/RYk7CdvDR7) to connect with other users and contributors.
+No Python code is executed within this solution; the Python sources live purely for reference and parity validation.
 
-## ⚡ Core Features
+## Repository Layout
 
-- Turn your agent into an optimizable beast with **ZERO CODE CHANGE** (almost)! 💤
-- Build with **ANY** agent framework (LangChain, OpenAI Agent SDK, AutoGen, CrewAI, Microsoft Agent Framework...); or even WITHOUT agent framework (Python OpenAI). You name it! 🤖
-- **Selectively** optimize one or more agents in a multi-agent system. 🎯
-- Embraces **Algorithms** like Reinforcement Learning, Automatic Prompt Optimization, Supervised Fine-tuning and more. 🤗
+| Path | Description |
+|------|-------------|
+| `src/ManagedCode.AgentLightning.Core` | Core domain models (`Rollout`, `Attempt`, hooks, metadata primitives). |
+| `src/ManagedCode.AgentLightning.AgentRuntime` | Execution pipeline built around `IChatClient` and dependency injection helpers. |
+| `src/ManagedCode.AgentLightning.Cli` | Minimal CLI host that wires up the runtime for interactive experimentation. |
+| `tests/ManagedCode.AgentLightning.Tests` | xUnit tests for the C# implementation (no Python dependencies). |
+| `external/microsoft-agent-lightning` | Upstream Python repository (git submodule, kept read-only). |
+| `MIGRATION_PLAN.md` | Module-by-module parity tracker for the migration process. |
+| `AGENTS.md` | Working agreements and guardrails specific to this port. |
 
-Read more on our [documentation website](https://microsoft.github.io/agent-lightning/).
+## Prerequisites
 
-<p align="center">
-  <img src="docs/assets/readme-diff.svg" alt="Agent-Lightning Core Quickstart" style="width:100%"/>
-</p>
+- .NET SDK 9.0.300 or later (C# 13 preview enabled).
+- Git with submodule support if you want to inspect the upstream Python sources.
 
-## ⚡ Installation
+## Getting Started
 
 ```bash
-pip install agentlightning
+git clone https://github.com/managedcode/agent-lightning.git
+cd agent-lightning
+git submodule update --init --recursive   # optional – only if you need to inspect the Python reference
+
+dotnet restore
+dotnet format
+dotnet test
 ```
 
-Please refer to our [installation guide](https://microsoft.github.io/agent-lightning/stable/tutorials/installation/) for more details.
+## Run the CLI Sample
 
-To start using Agent-lightning, check out our [documentation](https://microsoft.github.io/agent-lightning/) and [examples](./examples).
-
-## ⚡ Articles
-
-- 10/22/2025 [No More Retokenization Drift: Returning Token IDs via the OpenAI Compatible API Matters in Agent RL](https://blog.vllm.ai/2025/10/22/agent-lightning.html) vLLM blog. See also [Zhihu writeup](https://zhuanlan.zhihu.com/p/1965067274642785725).
-- 8/11/2025 [Training AI Agents to Write and Self-correct SQL with Reinforcement Learning](https://medium.com/@yugez/training-ai-agents-to-write-and-self-correct-sql-with-reinforcement-learning-571ed31281ad) Medium.
-- 8/5/2025 [Agent Lightning: Train ANY AI Agents with Reinforcement Learning](https://arxiv.org/abs/2508.03680) arXiv paper.
-- 7/26/2025 [We discovered an approach to train any AI agent with RL, with (almost) zero code changes.](https://www.reddit.com/r/LocalLLaMA/comments/1m9m670/we_discovered_an_approach_to_train_any_ai_agent/) Reddit.
-- 6/6/2025 [Agent Lightning - Microsoft Research](https://www.microsoft.com/en-us/research/project/agent-lightning/) Project page.
-
-## ⚡ Community Projects
-
-- [DeepWerewolf](https://github.com/af-74413592/DeepWerewolf) — A case study of agent RL training for the Chinese Werewolf game built with AgentScope and Agent Lightning.
-- [AgentFlow](https://agentflow.stanford.edu/) — A modular multi-agent framework that combines planner, executor, verifier, and generator agents with the Flow-GRPO algorithm to tackle long-horizon, sparse-reward tasks.
-
-## ⚡ Architecture
-
-Agent Lightning keeps the moving parts to a minimum so you can focus on your idea, not the plumbing. Your agent continues to run as usual; you can still use any agent framework you like; you drop in the lightweight `agl.emit_xxx()` helper, or let the tracer collect every prompt, tool call, and reward. Those events become structured spans that flow into the LightningStore, a central hub that keeps tasks, resources, and traces in sync.
-
-On the other side of the store sits the algorithm you choose, or write yourself. The algorithm reads spans, learns from them, and posts updated resources such as refined prompt templates or new policy weights. The Trainer ties it all together: it streams datasets to runners, ferries resources between the store and the algorithm, and updates the inference engine when improvements land. You can either stop there, or simply let the same loop keep turning.
-
-No rewrites, no lock-in, just a clear path from first rollout to steady improvement.
-
-<p align="center">
-  <img src="docs/assets/readme-architecture.svg" alt="Agent-lightning Architecture" style="width:100%"/>
-</p>
-
-## ⚡ CI Status
-
-| Workflow | Status |
-|----------|--------|
-| CPU Tests | [![tests workflow status](https://github.com/microsoft/agent-lightning/actions/workflows/tests.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/tests.yml) |
-| GPU Tests | [![tests-full workflow status](https://github.com/microsoft/agent-lightning/actions/workflows/tests-full.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/tests-full.yml) |
-| Examples Integration | [![examples summary workflow status](https://github.com/microsoft/agent-lightning/actions/workflows/badge-examples.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/badge-examples.yml) |
-| Latest Dependency Compatibility | [![latest summary workflow status](https://github.com/microsoft/agent-lightning/actions/workflows/badge-latest.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/badge-latest.yml) |
-| Legacy Examples Compatibility | [![examples compatibility workflow status](https://github.com/microsoft/agent-lightning/actions/workflows/examples-compat.yml/badge.svg)](https://github.com/microsoft/agent-lightning/actions/workflows/examples-compat.yml) |
-
-## ⚡ Citation
-
-If you find Agent Lightning useful in your research or projects, please cite our paper:
-
-```bibtex
-@misc{luo2025agentlightningtrainai,
-      title={Agent Lightning: Train ANY AI Agents with Reinforcement Learning},
-      author={Xufang Luo and Yuge Zhang and Zhiyuan He and Zilong Wang and Siyun Zhao and Dongsheng Li and Luna K. Qiu and Yuqing Yang},
-      year={2025},
-      eprint={2508.03680},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2508.03680},
-}
+```bash
+dotnet run --project src/ManagedCode.AgentLightning.Cli
 ```
 
-## ⚡ Contributing
+Type into the prompt to exercise the local `IChatClient` loop, or replace `LocalChatClient` with a production chat client via `LightningServiceCollectionExtensions`.
 
-This project welcomes contributions and suggestions. Start by reading the [Contributing Guide](docs/community/contributing.md) for environment setup, branching conventions, and pull request expectations. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+## Project Status
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
+- ✔ Core rollout/attempt models ported to C# with parity-focused semantics.  
+- ✔ Initial agent runtime executing rollouts against any `IChatClient`.  
+- ✔ CI, CodeQL, and release workflows based entirely on .NET tooling.  
+- 🛠 Migration progress tracked in [`MIGRATION_PLAN.md`](./MIGRATION_PLAN.md).  
+- 🗺 Upcoming work: tracer/span parity, runner orchestration, real AI provider adapters.
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+## Contributing
 
-## ⚡ Trademarks
+1. Fork the repository and branch from `main`.
+2. Run `dotnet format` followed by `dotnet test` before submitting changes.
+3. Update `MIGRATION_PLAN.md` with any new parity milestones or design decisions.
+4. Submit a pull request describing the ported functionality and tests.
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos are subject to those third-party's policies.
+## License
 
-## ⚡ Responsible AI
-
-This project has been evaluated and certified to comply with the Microsoft Responsible AI Standard. The team will continue to monitor and maintain the repository, addressing any severe issues, including potential harms, if they arise.
-
-## ⚡ License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](./LICENSE).
