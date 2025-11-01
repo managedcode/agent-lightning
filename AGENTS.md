@@ -32,18 +32,24 @@ Update guidelines:
 - for Agent Lightning migration tasks, ALWAYS mirror functionality, tests, and docs from `external/microsoft-agent-lightning`; treat the submodule as the canonical specification and never modify it directly
 - for Agent Lightning migration tasks, NEVER ship mocks, stubs, or placeholder implementations—port real behaviour before closing a task
 - for Agent Lightning runtime work, build on Microsoft Agent Framework components and `Microsoft.Extensions.AI`; prefer first-party packages under permissive (MIT) licenses
+- for Agent Lightning migration tasks, pursue the migration plan end-to-end without pausing to ask for clarification mid-task; deliver completed work unless the user explicitly redirects
+- for Agent Lightning migration tasks, when the user says "продовжити" or "continue", step through the requested workflow without further confirmation prompts
+- for Agent Lightning migration tasks, proactively capture improvement ideas directly in the working file (e.g., TODO comments) and implement them within the same task
+- for Agent Lightning migration tasks, default to progressing the migration even without an explicit "продовжити"/"continue"; halt only when the user gives new instructions
+- for Agent Lightning migration tasks, record any future follow-up items as `TODO:` comments in the relevant files so they are not lost
+- for Agent Lightning test coverage, include negative/error scenarios alongside positive cases to validate failure paths
 - maintain .NET central package management and keep the solution on .NET 9 / C# 13 with preview features enabled until GA guidance changes
 - always run `dotnet format --verify-no-changes` before `dotnet test` and make sure the full suite is green
 - reuse the ManagedCode Communication workflows for CI, CodeQL, and release automation; keep publish pipelines ready to push NuGet packages
 - avoid template artifacts (e.g., `Class1.cs`, `UnitTest1.cs`); name files and types according to their Agent Lightning domain responsibilities
 - keep documentation, code comments, and commit messaging in English
+- for .NET tests, feel free to use Shouldly assertions when they improve readability
 
 ## Solution Layout
 
 - `external/microsoft-agent-lightning` – vendored Python sources used for parity checks and fixtures.
 - `src/ManagedCode.AgentLightning.Core` – shared domain models (`Rollout`, `Attempt`, hooks, etc.).
 - `src/ManagedCode.AgentLightning.AgentRuntime` – runtime orchestration built atop `Microsoft.Extensions.AI`.
-- `src/ManagedCode.AgentLightning.Cli` – CLI harness hosting the C# runtime (ships as an executable, not a package).
 - `tests/ManagedCode.AgentLightning.Tests` – xUnit suite validating runtime behaviour and parity scenarios.
 - `.github/workflows` – CI/CodeQL/release pipelines mirrored from ManagedCode Communication.
 - `MIGRATION_PLAN.md` – evergreen tracker for module-by-module parity progress.
@@ -54,7 +60,6 @@ Update guidelines:
 - .NET solution scaffolding in place with central package management and packaging metadata.
 - Core rollout and attempt models ported to C# with concurrency-safe metadata.
 - Initial `LightningAgent` runtime implemented using `IChatClient`, plus `LocalChatClient` for offline smoke testing.
-- CLI harness invokes the runtime and exposes an interactive loop.
 - CI, CodeQL, and release workflows added; `dotnet format` and `dotnet test` succeed locally.
 - `MIGRATION_PLAN.md` documents coverage and remaining workstreams.
 
@@ -65,4 +70,4 @@ Update guidelines:
 3. Import Python fixtures into the C# test suite to exercise parity scenarios end-to-end.
 4. Implement adapters for real AI providers (OpenAI, Azure OpenAI, etc.) using Microsoft Agent Framework primitives.
 5. Design persistence abstractions mirroring the Python `store` package.
-6. Document configuration expectations and CLI commands for the new runtime.
+6. Document configuration expectations and hosting guidance for the new runtime.

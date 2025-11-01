@@ -16,7 +16,6 @@ No Python code is executed within this solution; the Python sources live purely 
 |------|-------------|
 | `src/ManagedCode.AgentLightning.Core` | Core domain models (`Rollout`, `Attempt`, hooks, metadata primitives). |
 | `src/ManagedCode.AgentLightning.AgentRuntime` | Execution pipeline built around `IChatClient` and dependency injection helpers. |
-| `src/ManagedCode.AgentLightning.Cli` | Minimal CLI host that wires up the runtime for interactive experimentation. |
 | `tests/ManagedCode.AgentLightning.Tests` | xUnit tests for the C# implementation (no Python dependencies). |
 | `external/microsoft-agent-lightning` | Upstream Python repository (git submodule, kept read-only). |
 | `MIGRATION_PLAN.md` | Module-by-module parity tracker for the migration process. |
@@ -39,18 +38,10 @@ dotnet format
 dotnet test
 ```
 
-## Run the CLI Sample
-
-```bash
-dotnet run --project src/ManagedCode.AgentLightning.Cli
-```
-
-Type into the prompt to exercise the local `IChatClient` loop, or replace `LocalChatClient` with a production chat client via `LightningServiceCollectionExtensions`.
-
 ## Project Status
 
 - ✔ Core rollout/attempt models ported to C# with parity-focused semantics.  
-- ✔ Initial agent runtime executing rollouts against any `IChatClient`.  
+- ✔ Initial agent runtime executing rollouts against any `IChatClient` (service-host ready).  
 - ✔ CI, CodeQL, and release workflows based entirely on .NET tooling.  
 - 🛠 Migration progress tracked in [`MIGRATION_PLAN.md`](./MIGRATION_PLAN.md).  
 - 🗺 Upcoming work: tracer/span parity, runner orchestration, real AI provider adapters.

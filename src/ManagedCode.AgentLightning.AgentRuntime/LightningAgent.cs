@@ -8,7 +8,7 @@ namespace ManagedCode.AgentLightning.AgentRuntime;
 /// <summary>
 /// Executes rollouts by delegating to <see cref="IChatClient"/>.
 /// </summary>
-public sealed class LightningAgent : IDisposable
+public sealed class LightningAgent : LitAgentBase<object>, IDisposable
 {
     private readonly IChatClient _chatClient;
     private readonly ILogger<LightningAgent> _logger;
@@ -41,7 +41,7 @@ public sealed class LightningAgent : IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
-    public async Task<LightningExecutionResult> ExecuteAsync(object taskInput, CancellationToken cancellationToken = default)
+    protected override async Task<LightningExecutionResult> RolloutAsync(object taskInput, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
 

@@ -7,7 +7,7 @@
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Shouldly" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ManagedCode.AgentLightning.AgentRuntime\ManagedCode.AgentLightning.AgentRuntime.csproj" />

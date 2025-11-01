@@ -1,55 +1,108 @@
-# ManagedCode Agent Lightning C# Migration Plan
 
-This document tracks the conversion of the original Python implementation to a .NET 9 / C# 13 codebase published under the ManagedCode namespace.
-The Python reference lives in the `external/microsoft-agent-lightning` submodule and remains the
-single source of truth for product behaviour until full parity is achieved.
+# ManagedCode Agent Lightning Migration Plan
 
-## Repository Layout
+This plan tracks parity work between `external/microsoft-agent-lightning` (Python) and the C# port.
 
-- `external/microsoft-agent-lightning` &mdash; upstream Python sources used for reference and fixtures.
-- `src/ManagedCode.AgentLightning.Core` &mdash; shared domain models and primitives.
-- `src/ManagedCode.AgentLightning.AgentRuntime` &mdash; runtime orchestration for agents backed by `Microsoft.Extensions.AI`.
-- `src/ManagedCode.AgentLightning.Cli` &mdash; self-hosted CLI harness that exercises the C# runtime.
-- `tests/ManagedCode.AgentLightning.Tests` &mdash; xUnit test suite validating the C# port.
+## Status Legend
 
-## Python Module Inventory
+- ✅ Complete in C#
+- 🚧 Planned / not yet ported
+- ❓ Needs investigation / decide if we port
 
-| Python Module                                                     | Summary                                                      | Migration Target                               | Status         | Notes |
-|-------------------------------------------------------------------|--------------------------------------------------------------|-------------------------------------------------|----------------|-------|
-| `agentlightning/types/core.py`, `types/tracer.py`                 | Core data models, spans, rollouts                           | `ManagedCode.AgentLightning.Core/Models`        | **In progress** | Triplet, Rollout, Attempt ported; tracer shapes pending. |
-| `agentlightning/litagent/`                                        | Agent lifecycle, rollout orchestration                      | `ManagedCode.AgentLightning.AgentRuntime`       | **In progress** | `LightningAgent` implemented with `IChatClient`; advanced features pending. |
-| `agentlightning/runner/`                                          | Runner coordination, hooks, parallel execution              | `ManagedCode.AgentLightning.AgentRuntime`       | Not started    | Need scheduling and multi-attempt coordination. |
-| `agentlightning/tracer/`                                          | OpenTelemetry integrations                                   | `ManagedCode.AgentLightning.Core` / `ManagedCode.AgentLightning.AgentRuntime` | Not started    | Requires .NET OTEL pipeline. |
-| `agentlightning/store/`                                           | Persistence layer                                             | TBD                                             | Not started    | Identify .NET storage abstraction. |
-| `agentlightning/reward/`                                          | Reward calculation utilities                                 | TBD                                             | Not started    | Requires parity with RL tooling. |
-| `agentlightning/adapter/`, `execution/`, `algorithm/`, `trainer/` | Training pipelines, adapters, algorithms                     | TBD                                             | Not started    | Dependent on runner and tracer ports. |
-| `agentlightning/cli/`                                             | Python CLI entry points                                      | `ManagedCode.AgentLightning.Cli`                | **In progress** | New CLI harness available; parity with Python commands pending. |
-| `agentlightning/server.py`, `client.py`                           | Legacy HTTP server/client                                    | Separate ASP.NET/API project (future)           | Not started    | Decide on long-term hosting story. |
-| `agentlightning/logging.py`                                       | Logging helpers                                              | `.NET logging abstractions`                     | **In progress** | Logging routed through `Microsoft.Extensions.Logging`. |
-| `tests/`                                                          | Integration and parity tests                                 | `tests/ManagedCode.AgentLightning.Tests`        | Not started    | Need fixtures mirroring upstream scenarios. |
+## Core Building Blocks
+
+| Component | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| Domain models | `agentlightning/types/core.py` | ✅ | `ManagedCode.AgentLightning.Core/Models` – rollout/attempt/triplet + hooks |
+| Tracing models | `agentlightning/types/tracer.py` | ✅ | `ManagedCode.AgentLightning.Core/Tracing` – span DTOs & helpers with OpenTelemetry tests |
+| Resources | `agentlightning/types/resources.py` | ✅ | `ManagedCode.AgentLightning.Core/Resources` – LLM/proxy/prompt resources mirrored |
+| LitAgent base | `agentlightning/litagent/litagent.py` | ✅ | `LitAgentBase<T>` with hook lifecycle, `LightningAgent` derives from it |
+| Adapter infrastructure | `agentlightning/adapter/base.py` | ✅ | `Adapters/Adapter`, `TraceAdapter`, `TraceToMessagesAdapter` implemented with tests |
+| Runner infrastructure | `agentlightning/runner/base.py` | ✅ | `LitAgentRunner` processes rollouts via LightningAgent and stores spans |
+| Store interface | `agentlightning/store/base.py` | ✅ | `ILightningStore` contract + `InMemoryLightningStore` covering queue/attempt/span lifecycle |
+| Trainer orchestration | `agentlightning/trainer/trainer.py` | ✅ | `Trainer` orchestrates batches via store + runner (tested) |
+
+## Span & Resource Adapters
+
+| Adapter | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| Trace → messages | `adapter/messages.py` | 🚧 | Convert spans to chat history for `IChatClient` |
+| Trace → triplets | `adapter/triplet.py` | 🚧 | Build reward-aware triplets from spans |
+| OTEL trace adapter | `adapter/base.py` | 🚧 | Hook Activity -> SpanModel bridging |
+
+## Execution & Store Layers
+
+| Component | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| LightningStore (async) | `store/base.py` | 🚧 | Async contract mirroring enqueue/start/query APIs |
+| In-memory store | `store/memory.py` | 🚧 | Production-grade concurrency port |
+| Client/server bridge | `store/client_server.py` | ❓ | Decide ASP.NET hosting approach |
+| Runner execution strategies | `execution/*` | 🚧 | Channel/task-based equivalents |
+
+## Algorithms & Training Pipelines
+
+| Component | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| Algorithm base class | `algorithm/base.py` | 🚧 | Define async lifecycle (`SetupAsync`, `TrainAsync`, `TeardownAsync`) with dataset plumbing |
+| Fast baseline algorithms | `algorithm/fast.py` | ❓ | Decide whether to port representative baseline for smoke tests |
+| APO (Automatic Prompt Optimization) | `algorithm/apo/apo.py` | 🚧 | Requires prompt diffing, versioned templates, and evaluation harness |
+| VERL distributed trainer | `algorithm/verl/*` | ❓ | Needs multi-process orchestration design in .NET (potential future phase) |
+| Trainer legacy compat | `trainer/legacy.py` | 🚧 | Implement legacy hooks while aligning with new runner/store abstractions |
+| Trainer orchestration | `trainer/trainer.py` | 🚧 | Port training loop, scheduler, and algorithm/run coordination |
+| Registry/config utilities | `trainer/registry.py`, `trainer/init_utils.py` | 🚧 | Recreate component registration and config binding over `Options` |
+
+## Reward & Instrumentation
+
+| Component | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| Reward emitters | `emitter/reward.py`, `reward.py` | 🚧 | Implement reward span helpers with OTEL integration |
+| Message/object emitters | `emitter/message.py`, `emitter/object.py`, `emitter/utils.py` | 🚧 | Required for parity in trace adapters |
+| Instrumentation (AgentOps, LiteLLM, vLLM) | `instrumentation/*` | ❓ | Determine .NET bindings and optionality |
+| Logging utilities | `logging.py` | ✅ | Replaced with `Microsoft.Extensions.Logging` configuration helpers |
+| LLM proxy instrumentation | `llm_proxy.py` | ❓ | Evaluate hosting (ASP.NET Core) and span exporter support |
+
+## Fixtures, Docs & Tooling
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Python fixture import | 🚧 | Need harness to reuse JSON/SQLite fixtures from submodule |
+| Integration test parity | 🚧 | Blocked until adapters, store, runner port complete |
+| Docs & README updates | 🚧 | Document hosting, configuration, and migration progress |
+| Packaging & CI | ✅ | .NET solution, format/test gates, and workflows in place |
+
+## External Interfaces
+
+| Component | Python Source | Status | Notes |
+| --- | --- | --- | --- |
+| LLM proxy service | `llm_proxy.py` | ❓ | Evaluate ASP.NET Core standalone proxy |
+| Logging helpers | `logging.py` | ✅ | Using `Microsoft.Extensions.Logging` |
+| Legacy server/client | `server.py`, `client.py` | ❓ | Decide on support for legacy flows |
+
+## Test Parity
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Core models & resources | ✅ | Unit tests in `ManagedCode.AgentLightning.Tests` |
+| Span conversions | ✅ | `Tracing/SpanModelTests` |
+| Resource helper coverage | ✅ | `Resources/ResourceModelTests` |
+| Adapter tests | 🚧 | Need to mirror upstream fixtures |
+| Runner/store/trainer integration | 🚧 | Blocked until components ported |
 
 ## Completed Work
 
-- Converted repository scaffold to .NET 9 / C# 13 solution with central package management.
-- Implemented core rollout models (`Triplet`, `Attempt`, `Rollout`, hooks) in `ManagedCode.AgentLightning.Core`.
-- Ported fundamental agent execution pipeline powered by `Microsoft.Extensions.AI.IChatClient`.
-- Added `LocalChatClient` for offline validation and connected CLI harness.
-- Established CI, CodeQL, and release workflows mirroring ManagedCode patterns.
-- Added initial integration test covering `LightningAgent` execution against the local client.
+- .NET 9 solution scaffolding with central package management
+- Core rollout/attempt models and runtime scaffolding (`LightningAgent` + `LocalChatClient`)
+- CI/CodeQL/release workflows (ManagedCode templates)
+- Span/resource models with OpenTelemetry conversions and unit coverage
 
 ## Near-Term Priorities
 
-1. Port tracer data structures (`Span`, OTEL conversions) and integrate with .NET OpenTelemetry.
-2. Bring over runner orchestration primitives (parallel workers, retry policies, resource slots).
-3. Reproduce Python parity tests by sourcing fixtures from the submodule.
-4. Introduce configurable connectors for real AI providers using `Microsoft.Extensions.AI` builders.
-5. Document configuration and extension points in `README.md`.
+1. Port trace adapters (messages, triplets) to convert spans into actionable payloads.
+2. Implement store abstractions (interface + in-memory implementation) to unblock runner tests.
+3. Port runner orchestration and cover end-to-end execution (agent + store + adapters).
+4. Reproduce key Python fixtures/tests for adapters and store logic.
+5. Plan hosting story for LLM proxy / legacy endpoints (document decisions).
 
-## Tracking Progress
+## Tracking Guidance
 
-Update this file whenever:
-
-- A Python module gains a parity implementation or has design decisions documented.
-- Tests are ported or new coverage approaches are introduced.
-- Workflow or packaging behaviours change.
-- Deprecated guidance is removed or superseded.
+Update this document whenever a component moves between statuses or when new design decisions affect parity.

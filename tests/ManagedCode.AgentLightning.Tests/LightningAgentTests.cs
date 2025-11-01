@@ -1,7 +1,7 @@
 using ManagedCode.AgentLightning.AgentRuntime;
 using ManagedCode.AgentLightning.Core.Models;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Shouldly;
 using Xunit;
 
 namespace ManagedCode.AgentLightning.Tests;
@@ -27,10 +27,10 @@ public sealed class LightningAgentTests
 
         var result = await agent.ExecuteAsync("Explain reinforcement learning briefly.");
 
-        result.Attempt.Status.Should().Be(AttemptStatus.Succeeded);
-        result.Rollout.Status.Should().Be(RolloutStatus.Succeeded);
-        result.Response.Text.Should().ContainEquivalentOf("Explain reinforcement learning");
-        result.Triplet.Prompt.Should().NotBeNull();
-        result.Triplet.Response.Should().NotBeNull();
+        result.Attempt.Status.ShouldBe(AttemptStatus.Succeeded);
+        result.Rollout.Status.ShouldBe(RolloutStatus.Succeeded);
+        result.Response.Text.ShouldContain("Explain reinforcement learning", Case.Insensitive);
+        result.Triplet.Prompt.ShouldNotBeNull();
+        result.Triplet.Response.ShouldNotBeNull();
     }
 }
