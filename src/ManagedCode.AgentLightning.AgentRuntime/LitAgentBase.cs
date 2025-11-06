@@ -1,4 +1,6 @@
 using ManagedCode.AgentLightning.AgentRuntime.Runner;
+using ManagedCode.AgentLightning.Core.Models;
+using ManagedCode.AgentLightning.Core.Resources;
 
 namespace ManagedCode.AgentLightning.AgentRuntime;
 
@@ -26,10 +28,25 @@ public abstract class LitAgentBase<TTask>
 
     public virtual bool IsAsync => true;
 
-    public async Task<LightningExecutionResult> ExecuteAsync(TTask task, CancellationToken cancellationToken = default)
+    public Task<LightningExecutionResult> ExecuteAsync(TTask task, CancellationToken cancellationToken = default) =>
+        ExecuteAsync(task, resources: null, mode: null, resourcesId: null, cancellationToken);
+
+    public Task<LightningExecutionResult> ExecuteAsync(
+        TTask task,
+        NamedResources? resources,
+        RolloutMode? mode,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(task, resources, mode, resourcesId: null, cancellationToken);
+
+    public async Task<LightningExecutionResult> ExecuteAsync(
+        TTask task,
+        NamedResources? resources,
+        RolloutMode? mode,
+        string? resourcesId,
+        CancellationToken cancellationToken = default)
     {
         await OnRolloutStartAsync(task, cancellationToken).ConfigureAwait(false);
-        var result = await RolloutAsync(task, cancellationToken).ConfigureAwait(false);
+        var result = await RolloutAsync(task, resources, mode, resourcesId, cancellationToken).ConfigureAwait(false);
         await OnRolloutEndAsync(task, result, cancellationToken).ConfigureAwait(false);
         return result;
     }
@@ -39,5 +56,10 @@ public abstract class LitAgentBase<TTask>
     protected virtual Task OnRolloutEndAsync(TTask task, LightningExecutionResult result, CancellationToken cancellationToken) =>
         Task.CompletedTask;
 
-    protected abstract Task<LightningExecutionResult> RolloutAsync(TTask task, CancellationToken cancellationToken);
+    protected abstract Task<LightningExecutionResult> RolloutAsync(
+        TTask task,
+        NamedResources? resources,
+        RolloutMode? mode,
+        string? resourcesId,
+        CancellationToken cancellationToken);
 }

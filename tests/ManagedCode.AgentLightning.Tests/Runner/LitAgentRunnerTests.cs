@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using ManagedCode.AgentLightning.AgentRuntime;
 using ManagedCode.AgentLightning.AgentRuntime.Runner;
 using ManagedCode.AgentLightning.Core.Models;
+using ManagedCode.AgentLightning.Core.Resources;
 using ManagedCode.AgentLightning.Core.Stores;
 using ManagedCode.AgentLightning.Core.Tracing;
 using Microsoft.Extensions.AI;
@@ -93,5 +95,88 @@ public class LitAgentRunnerTests
         var spans = await store.GetSpansAsync(rollout.RolloutId, $"{rollout.RolloutId}:attempt:2");
         spans.Count.ShouldBe(1);
         spans[0].Attributes["gen_ai.completion.0.content"].ShouldBe("recovered");
+    }
+
+    [Fact]
+    public async Task Runner_RunBatchAsync_ShouldProcessWithParallelism()
+    {
+        var store = new InMemoryLightningStore();
+        var (agent, loggerFactory) = CreateAgent("parallel-agent");
+        var runner = new LitAgentRunner(agent, store, loggerFactory.CreateLogger<LitAgentRunner>());
+
+        for (var i = 0; i < 4; i++)
+        {
+            await store.EnqueueRolloutAsync($"task-{i}");
+        }
+
+        var results = await runner.RunBatchAsync(4, degreeOfParallelism: 2);
+
+        results.Count.ShouldBe(4);
+
+        var rollouts = await store.QueryRolloutsAsync();
+        rollouts.Count.ShouldBe(4);
+
+        foreach (var rollout in rollouts)
+        {
+            var attempts = await store.QueryAttemptsAsync(rollout.RolloutId);
+            attempts.Count.ShouldBeGreaterThan(0);
+            attempts[0].WorkerId.ShouldNotBeNull();
+        }
+    }
+
+    [Fact]
+    public async Task Runner_RunStepAsync_ShouldExecuteRolloutImmediately()
+    {
+        var store = new InMemoryLightningStore();
+        var (agent, loggerFactory) = CreateAgent("step-agent");
+        var runner = new LitAgentRunner(agent, store, loggerFactory.CreateLogger<LitAgentRunner>());
+
+        var resources = new NamedResources(new Dictionary<string, ResourceDefinition>
+        {
+            ["primary"] = new LlmResource
+            {
+                Endpoint = "https://example.com",
+                Model = "test-model",
+            },
+        });
+
+        var rollout = await runner.RunStepAsync("quick-task", resources);
+
+        rollout.Status.ShouldBe(RolloutStatus.Succeeded);
+        var attempts = await store.QueryAttemptsAsync(rollout.RolloutId);
+        attempts.Count.ShouldBe(1);
+        attempts[0].Status.ShouldBe(AttemptStatus.Succeeded);
+
+        var spans = await store.GetSpansAsync(rollout.RolloutId, "latest");
+        spans.Count.ShouldBe(1);
+        rollout.ResourcesId.ShouldNotBeNull();
+        rollout.Metadata.ContainsKey("resources.names").ShouldBeTrue();
+        var names = rollout.Metadata["resources.names"].ShouldBeOfType<string[]>();
+        names.ShouldContain("primary");
+
+        var latestResources = await store.GetResourcesByIdAsync(rollout.ResourcesId!);
+        latestResources.ShouldNotBeNull();
+        latestResources!.Resources.ShouldContainKey("primary");
+    }
+
+    [Fact]
+    public async Task Runner_RunAsync_ShouldRespectMaxRollouts()
+    {
+        var store = new InMemoryLightningStore();
+        var (agent, loggerFactory) = CreateAgent("async-agent");
+        var runner = new LitAgentRunner(agent, store, loggerFactory.CreateLogger<LitAgentRunner>());
+
+        for (var i = 0; i < 3; i++)
+        {
+            await store.EnqueueRolloutAsync($"task-{i}");
+        }
+
+        await runner.RunAsync(maxRollouts: 2, pollInterval: TimeSpan.FromMilliseconds(10), degreeOfParallelism: 2);
+
+        var succeeded = await store.QueryRolloutsAsync(new[] { RolloutStatus.Succeeded });
+        succeeded.Count.ShouldBe(2);
+
+        var remaining = await store.DequeueRolloutAsync();
+        remaining.ShouldNotBeNull();
     }
 }

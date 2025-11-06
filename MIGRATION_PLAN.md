@@ -37,7 +37,7 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 | LightningStore (async) | `store/base.py` | ✅ | `ILightningStore` exposes start/enqueue/start-attempt, span sequencing, and wait semantics |
 | In-memory store | `store/memory.py` | ✅ | Expanded store handles attempts, spans, resources, and polling waits with thread-safe state |
 | Client/server bridge | `store/client_server.py` | ❓ | Decide ASP.NET hosting approach |
-| Runner execution strategies | `execution/*` | 🚧 | C# runner tracks worker ids, retries via store requeue; parallel orchestration still pending |
+| Runner execution strategies | `execution/*` | 🚧 | C# runner supports single-step execution, retry-aware polling, and resource hydration; parallel orchestration still pending |
 
 ## Algorithms & Training Pipelines
 

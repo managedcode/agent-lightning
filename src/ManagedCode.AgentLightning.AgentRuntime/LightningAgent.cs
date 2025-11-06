@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using ManagedCode.AgentLightning.Core.Models;
+using ManagedCode.AgentLightning.Core.Resources;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -41,7 +44,20 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
-    protected override async Task<LightningExecutionResult> RolloutAsync(object taskInput, CancellationToken cancellationToken)
+    public Task<LightningExecutionResult> ExecuteAsync(
+        object taskInput,
+        NamedResources? resources,
+        string? resourcesId,
+        RolloutMode? mode = null,
+        CancellationToken cancellationToken = default) =>
+        base.ExecuteAsync(taskInput, resources, mode, resourcesId, cancellationToken);
+
+    protected override async Task<LightningExecutionResult> RolloutAsync(
+        object taskInput,
+        NamedResources? resources,
+        RolloutMode? mode,
+        string? resourcesId,
+        CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
 
@@ -52,14 +68,33 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
             taskInput,
             startTimestamp,
             config: _options.RolloutConfig,
-            mode: null,
-            resourcesId: null);
+            mode: mode,
+            resourcesId: resourcesId);
 
         var attempt = new Attempt(
             rolloutId,
             $"{rolloutId}:attempt:1",
             sequenceId: 1,
             startTimestamp);
+
+        if (!string.IsNullOrEmpty(resourcesId))
+        {
+            var id = resourcesId!;
+            rollout.AddMetadata("resources.id", id);
+            attempt.AddMetadata("resources.id", id);
+        }
+
+        if (resources is { Count: > 0 })
+        {
+            var resourceNames = resources.Keys.ToArray();
+            rollout.AddMetadata("resources.names", resourceNames);
+            attempt.AddMetadata("resources.names", resourceNames);
+        }
+
+        if (mode is { } rolloutMode)
+        {
+            rollout.AddMetadata("mode", rolloutMode.ToString());
+        }
 
         var context = new LightningContext(this, this, rollout);
         await InvokeHooksAsync(h => h.OnTraceStartAsync(context, cancellationToken), cancellationToken).ConfigureAwait(false);

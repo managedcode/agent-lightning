@@ -50,7 +50,14 @@ public sealed class Trainer
 
         _logger.LogInformation("Enqueued {Count} rollouts for training.", taskList.Count);
 
-        var results = await _runner.RunBatchAsync(taskList.Count, cancellationToken).ConfigureAwait(false);
+        var parallelism = options?.MaxDegreeOfParallelism ?? 1;
+        if (parallelism < 1)
+        {
+            parallelism = 1;
+        }
+        var results = await _runner
+            .RunBatchAsync(taskList.Count, parallelism, cancellationToken)
+            .ConfigureAwait(false);
 
         _logger.LogInformation("Completed {Count} rollouts.", results.Count);
 
