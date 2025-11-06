@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ManagedCode.AgentLightning.Core.Adapters;
 using ManagedCode.AgentLightning.Core.Models;
 using ManagedCode.AgentLightning.Core.Stores;
@@ -15,6 +18,7 @@ public sealed class LitAgentRunner
     private readonly ILightningStore _store;
     private readonly ILogger<LitAgentRunner> _logger;
     private readonly TimeProvider _timeProvider;
+    private string? _workerId;
 
     public LitAgentRunner(
         LightningAgent agent,
@@ -37,7 +41,7 @@ public sealed class LitAgentRunner
 
         var results = new List<LightningExecutionResult>(expectedRollouts);
 
-        for (var i = 0; i < expectedRollouts; i++)
+        while (results.Count < expectedRollouts && !cancellationToken.IsCancellationRequested)
         {
             var attempted = await _store.DequeueRolloutAsync(cancellationToken).ConfigureAwait(false);
             if (attempted is null)
@@ -47,21 +51,44 @@ public sealed class LitAgentRunner
 
             try
             {
+                var workerId = GetWorkerId();
+                attempted.Attempt.AttachWorker(workerId);
+                attempted.Attempt.UpdateStatus(AttemptStatus.Running);
+                attempted.Attempt.Touch(_timeProvider.GetUtcNow());
+                await _store.UpdateAttemptAsync(attempted.Attempt, cancellationToken).ConfigureAwait(false);
+
                 var execution = await _agent.ExecuteAsync(attempted.Rollout.Input, cancellationToken).ConfigureAwait(false);
                 results.Add(execution);
 
                 attempted.Attempt.UpdateStatus(execution.Attempt.Status, execution.Attempt.EndTime ?? _timeProvider.GetUtcNow());
                 await _store.UpdateAttemptAsync(attempted.Attempt, cancellationToken).ConfigureAwait(false);
-                await _store.UpdateRolloutStatusAsync(attempted.Rollout.RolloutId, execution.Rollout.Status, execution.Rollout.EndTime, cancellationToken).ConfigureAwait(false);
 
-                var span = BuildSpanFromResult(attempted, execution);
-                await _store.AddSpanAsync(attempted.Rollout.RolloutId, attempted.Attempt.AttemptId, span, cancellationToken).ConfigureAwait(false);
+                if (execution.Attempt.Status == AttemptStatus.Succeeded)
+                {
+                    await _store.UpdateRolloutStatusAsync(
+                        attempted.Rollout.RolloutId,
+                        execution.Rollout.Status,
+                        execution.Rollout.EndTime ?? _timeProvider.GetUtcNow(),
+                        cancellationToken).ConfigureAwait(false);
+
+                    var sequenceId = await _store.GetNextSpanSequenceIdAsync(
+                        attempted.Rollout.RolloutId,
+                        attempted.Attempt.AttemptId,
+                        cancellationToken).ConfigureAwait(false);
+
+                    var span = BuildSpanFromResult(attempted, execution, sequenceId);
+                    await _store.AddSpanAsync(span, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await HandleAttemptFailureAsync(attempted, cancellationToken).ConfigureAwait(false);
+                }
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 attempted.Attempt.UpdateStatus(AttemptStatus.Failed, _timeProvider.GetUtcNow());
                 await _store.UpdateAttemptAsync(attempted.Attempt, cancellationToken).ConfigureAwait(false);
-                await _store.UpdateRolloutStatusAsync(attempted.Rollout.RolloutId, RolloutStatus.Failed, _timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+                await HandleAttemptFailureAsync(attempted, cancellationToken).ConfigureAwait(false);
                 _logger.LogError(ex, "Runner failed while executing rollout {RolloutId}.", attempted.Rollout.RolloutId);
             }
         }
@@ -69,7 +96,42 @@ public sealed class LitAgentRunner
         return results;
     }
 
-    private static SpanModel BuildSpanFromResult(AttemptedRollout attempted, LightningExecutionResult execution)
+    private string GetWorkerId() =>
+        _workerId ??= $"runner-{Environment.CurrentManagedThreadId}";
+
+    private async Task HandleAttemptFailureAsync(AttemptedRollout attempted, CancellationToken cancellationToken)
+    {
+        var shouldRetry = ShouldRetry(attempted.Rollout, attempted.Attempt);
+        var status = shouldRetry ? RolloutStatus.Requeuing : RolloutStatus.Failed;
+        var endTime = shouldRetry ? (DateTimeOffset?)null : _timeProvider.GetUtcNow();
+
+        await _store.UpdateRolloutStatusAsync(
+            attempted.Rollout.RolloutId,
+            status,
+            endTime,
+            cancellationToken).ConfigureAwait(false);
+
+        if (shouldRetry)
+        {
+            _logger.LogInformation("Rollout {RolloutId} requeued after attempt {AttemptId} failed.", attempted.Rollout.RolloutId, attempted.Attempt.AttemptId);
+        }
+        else
+        {
+            _logger.LogWarning("Rollout {RolloutId} failed after attempt {AttemptId}.", attempted.Rollout.RolloutId, attempted.Attempt.AttemptId);
+        }
+    }
+
+    private static bool ShouldRetry(Rollout rollout, Attempt attempt)
+    {
+        if (attempt.SequenceId >= rollout.Config.MaxAttempts)
+        {
+            return false;
+        }
+
+        return rollout.Config.RetryOn.Contains(attempt.Status);
+    }
+
+    private static SpanModel BuildSpanFromResult(AttemptedRollout attempted, LightningExecutionResult execution, int sequenceId)
     {
         var attributes = new Dictionary<string, object?>(StringComparer.Ordinal);
         if (execution.Triplet.Prompt is IEnumerable<object?> prompts)
@@ -103,7 +165,7 @@ public sealed class LitAgentRunner
             attributes,
             rolloutId: attempted.Rollout.RolloutId,
             attemptId: attempted.Attempt.AttemptId,
-            sequenceId: attempted.Attempt.SequenceId,
+            sequenceId: sequenceId,
             name: "agentlightning.completion",
             startTime: attempted.Attempt.StartTime.ToUnixTimeSeconds(),
             endTime: attempted.Attempt.EndTime?.ToUnixTimeSeconds());

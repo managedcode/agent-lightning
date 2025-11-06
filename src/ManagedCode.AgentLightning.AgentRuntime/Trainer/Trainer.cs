@@ -40,16 +40,12 @@ public sealed class Trainer
             return Array.Empty<LightningExecutionResult>();
         }
 
-        var now = _timeProvider.GetUtcNow();
         foreach (var (payload, index) in taskList.Select((task, index) => (task, index)))
         {
-            var rollout = new Rollout(
-                rolloutId: $"rollout-{now.ToUnixTimeMilliseconds()}-{index}",
-                input: payload,
-                startTime: now,
-                config: new RolloutConfig().Normalize());
-
-            await _store.EnqueueRolloutAsync(rollout, cancellationToken).ConfigureAwait(false);
+            await _store.EnqueueRolloutAsync(
+                payload,
+                config: new RolloutConfig(),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         _logger.LogInformation("Enqueued {Count} rollouts for training.", taskList.Count);

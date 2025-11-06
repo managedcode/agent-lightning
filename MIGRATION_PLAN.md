@@ -26,18 +26,18 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 
 | Adapter | Python Source | Status | Notes |
 | --- | --- | --- | --- |
-| Trace → messages | `adapter/messages.py` | 🚧 | Convert spans to chat history for `IChatClient` |
-| Trace → triplets | `adapter/triplet.py` | 🚧 | Build reward-aware triplets from spans |
+| Trace → messages | `adapter/messages.py` | ✅ | `TraceToMessagesAdapter` translates GenAI spans into OpenAI chat payloads |
+| Trace → triplets | `adapter/triplet.py` | ✅ | `TracerTraceToTripletAdapter` exports triplets with reward policies |
 | OTEL trace adapter | `adapter/base.py` | 🚧 | Hook Activity -> SpanModel bridging |
 
 ## Execution & Store Layers
 
 | Component | Python Source | Status | Notes |
 | --- | --- | --- | --- |
-| LightningStore (async) | `store/base.py` | 🚧 | Async contract mirroring enqueue/start/query APIs |
-| In-memory store | `store/memory.py` | 🚧 | Production-grade concurrency port |
+| LightningStore (async) | `store/base.py` | ✅ | `ILightningStore` exposes start/enqueue/start-attempt, span sequencing, and wait semantics |
+| In-memory store | `store/memory.py` | ✅ | Expanded store handles attempts, spans, resources, and polling waits with thread-safe state |
 | Client/server bridge | `store/client_server.py` | ❓ | Decide ASP.NET hosting approach |
-| Runner execution strategies | `execution/*` | 🚧 | Channel/task-based equivalents |
+| Runner execution strategies | `execution/*` | 🚧 | C# runner tracks worker ids, retries via store requeue; parallel orchestration still pending |
 
 ## Algorithms & Training Pipelines
 
@@ -97,11 +97,10 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 
 ## Near-Term Priorities
 
-1. Port trace adapters (messages, triplets) to convert spans into actionable payloads.
-2. Implement store abstractions (interface + in-memory implementation) to unblock runner tests.
-3. Port runner orchestration and cover end-to-end execution (agent + store + adapters).
-4. Reproduce key Python fixtures/tests for adapters and store logic.
-5. Plan hosting story for LLM proxy / legacy endpoints (document decisions).
+1. Expand runner execution strategies (parallel workers, retries, resource coordination).
+2. Reproduce key Python fixtures/tests for adapters, store logic, and integration flows.
+3. Plan hosting story for LLM proxy / legacy endpoints and capture decisions.
+4. Map persistence backends beyond in-memory (client/server bridge, durable stores).
 
 ## Tracking Guidance
 
