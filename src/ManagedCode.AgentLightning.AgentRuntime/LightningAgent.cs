@@ -47,8 +47,8 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
     public Task<LightningExecutionResult> ExecuteAsync(
         object taskInput,
         NamedResources? resources,
-        string? resourcesId,
         RolloutMode? mode = null,
+        string? resourcesId = null,
         CancellationToken cancellationToken = default) =>
         base.ExecuteAsync(taskInput, resources, mode, resourcesId, cancellationToken);
 

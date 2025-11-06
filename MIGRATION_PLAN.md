@@ -44,9 +44,7 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 | Component | Python Source | Status | Notes |
 | --- | --- | --- | --- |
 | Algorithm base class | `algorithm/base.py` | 🚧 | Define async lifecycle (`SetupAsync`, `TrainAsync`, `TeardownAsync`) with dataset plumbing |
-| Fast baseline algorithms | `algorithm/fast.py` | ❓ | Decide whether to port representative baseline for smoke tests |
 | APO (Automatic Prompt Optimization) | `algorithm/apo/apo.py` | 🚧 | Requires prompt diffing, versioned templates, and evaluation harness |
-| VERL distributed trainer | `algorithm/verl/*` | ❓ | Needs multi-process orchestration design in .NET (potential future phase) |
 | Trainer legacy compat | `trainer/legacy.py` | 🚧 | Implement legacy hooks while aligning with new runner/store abstractions |
 | Trainer orchestration | `trainer/trainer.py` | 🚧 | Port training loop, scheduler, and algorithm/run coordination |
 | Registry/config utilities | `trainer/registry.py`, `trainer/init_utils.py` | 🚧 | Recreate component registration and config binding over `Options` |
@@ -59,7 +57,6 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 | Message/object emitters | `emitter/message.py`, `emitter/object.py`, `emitter/utils.py` | 🚧 | Required for parity in trace adapters |
 | Instrumentation (AgentOps, LiteLLM, vLLM) | `instrumentation/*` | ❓ | Determine .NET bindings and optionality |
 | Logging utilities | `logging.py` | ✅ | Replaced with `Microsoft.Extensions.Logging` configuration helpers |
-| LLM proxy instrumentation | `llm_proxy.py` | ❓ | Evaluate hosting (ASP.NET Core) and span exporter support |
 
 ## Fixtures, Docs & Tooling
 
@@ -74,7 +71,6 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 
 | Component | Python Source | Status | Notes |
 | --- | --- | --- | --- |
-| LLM proxy service | `llm_proxy.py` | ❓ | Evaluate ASP.NET Core standalone proxy |
 | Logging helpers | `logging.py` | ✅ | Using `Microsoft.Extensions.Logging` |
 | Legacy server/client | `server.py`, `client.py` | ❓ | Decide on support for legacy flows |
 
@@ -99,8 +95,8 @@ This plan tracks parity work between `external/microsoft-agent-lightning` (Pytho
 
 1. Expand runner execution strategies (parallel workers, retries, resource coordination).
 2. Reproduce key Python fixtures/tests for adapters, store logic, and integration flows.
-3. Plan hosting story for LLM proxy / legacy endpoints and capture decisions.
-4. Map persistence backends beyond in-memory (client/server bridge, durable stores).
+3. Stand up algorithm/trainer scaffolding (base class, APO components, legacy compat).
+4. Implement reward/message emitter instrumentation and vendor integration bindings.
 
 ## Tracking Guidance
 
