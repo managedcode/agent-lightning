@@ -44,14 +44,6 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
-    public Task<LightningExecutionResult> ExecuteAsync(
-        object taskInput,
-        NamedResources? resources,
-        RolloutMode? mode = null,
-        string? resourcesId = null,
-        CancellationToken cancellationToken = default) =>
-        base.ExecuteAsync(taskInput, resources, mode, resourcesId, cancellationToken);
-
     protected override async Task<LightningExecutionResult> RolloutAsync(
         object taskInput,
         NamedResources? resources,

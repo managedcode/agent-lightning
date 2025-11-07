@@ -22,7 +22,7 @@ public sealed class ActivityToSpanModelAdapter : OtelTraceAdapter<IReadOnlyList<
     public ActivityToSpanModelAdapter(
         string? defaultRolloutId = null,
         string? defaultAttemptId = null,
-        int sequenceSeed = 1,
+        int sequenceSeed = 0,
         IComparer<Activity>? ordering = null,
         Func<Activity, Resource?>? resourceResolver = null)
     {
@@ -132,14 +132,19 @@ public sealed class ActivityToSpanModelAdapter : OtelTraceAdapter<IReadOnlyList<
             case long l when l is >= int.MinValue and <= int.MaxValue:
                 result = (int)l;
                 return true;
-            case string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed):
-                result = parsed;
-                return true;
+            case string s:
+                if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedFromString))
+                {
+                    result = parsedFromString;
+                    return true;
+                }
+
+                break;
             case IFormattable formattable:
                 var asString = formattable.ToString(null, CultureInfo.InvariantCulture);
-                if (int.TryParse(asString, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+                if (int.TryParse(asString, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedFromFormattable))
                 {
-                    result = parsed;
+                    result = parsedFromFormattable;
                     return true;
                 }
 
