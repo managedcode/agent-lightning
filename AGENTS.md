@@ -31,14 +31,14 @@ Update guidelines:
 ## Rules To Follow
 - for Agent Lightning migration tasks, ALWAYS mirror functionality, tests, and docs from `external/microsoft-agent-lightning`; treat the submodule as the canonical specification and never modify it directly
 - for Agent Lightning migration tasks, NEVER ship mocks, stubs, or placeholder implementations—port real behaviour before closing a task
-- for Agent Lightning runtime work, build on Microsoft Agent Framework components and `Microsoft.Extensions.AI`; prefer first-party packages under permissive (MIT) licenses
+- for Agent Lightning runtime work, use only Microsoft Agent Framework and `Microsoft.Extensions.AI`; use `Microsoft.Extensions.AI.Evaluation` for evaluation, and keep every fake or local test client in test-only projects
 - for Agent Lightning migration tasks, pursue the migration plan end-to-end without pausing to ask for clarification mid-task; deliver completed work unless the user explicitly redirects
 - for Agent Lightning migration tasks, when the user says "продовжити" or "continue", step through the requested workflow without further confirmation prompts
 - for Agent Lightning migration tasks, proactively capture improvement ideas directly in the working file (e.g., TODO comments) and implement them within the same task
 - for Agent Lightning migration tasks, default to progressing the migration even without an explicit "продовжити"/"continue"; halt only when the user gives new instructions
 - for Agent Lightning migration tasks, record any future follow-up items as `TODO:` comments in the relevant files so they are not lost
 - for Agent Lightning test coverage, include negative/error scenarios alongside positive cases to validate failure paths
-- maintain .NET central package management and keep the solution on .NET 9 / C# 13 with preview features enabled until GA guidance changes
+- maintain .NET central package management and preserve the .NET 9 / C# 13 consumer target unless a deliberate compatibility change is reviewed
 - always run `dotnet format --verify-no-changes` before `dotnet test` and make sure the full suite is green
 - reuse the ManagedCode Communication workflows for CI, CodeQL, and release automation; keep publish pipelines ready to push NuGet packages
 - avoid template artifacts (e.g., `Class1.cs`, `UnitTest1.cs`); name files and types according to their Agent Lightning domain responsibilities
@@ -59,15 +59,13 @@ Update guidelines:
 - Python repository wired in as a submodule for reference.
 - .NET solution scaffolding in place with central package management and packaging metadata.
 - Core rollout and attempt models ported to C# with concurrency-safe metadata.
-- Initial `LightningAgent` runtime implemented using `IChatClient`, plus `LocalChatClient` for offline smoke testing.
+- The runtime uses caller-supplied MEAI `IChatClient` or MAF `AIAgent`; deterministic echo clients exist only in tests.
+- Textual APO runs in-process using MEAI chat clients and MEAI.Evaluation; it does not implement tensor/GPU RL.
 - CI, CodeQL, and release workflows added; `dotnet format` and `dotnet test` succeed locally.
 - `MIGRATION_PLAN.md` documents coverage and remaining workstreams.
 
 ## Next Steps
 
-1. Port tracer/span representations and hook into .NET OpenTelemetry exporters.
-2. Reproduce runner orchestration (parallel workers, retries, resource allocation).
-3. Import Python fixtures into the C# test suite to exercise parity scenarios end-to-end.
-4. Implement adapters for real AI providers (OpenAI, Azure OpenAI, etc.) using Microsoft Agent Framework primitives.
-5. Design persistence abstractions mirroring the Python `store` package.
-6. Document configuration expectations and hosting guidance for the new runtime.
+1. Use `MIGRATION_PLAN.md` to select the next applicable pinned-v0.2 behavior and add end-to-end parity cases.
+2. Keep v1 GPU/RL and provider-specific instrumentation clearly marked as not implemented; do not imply full upstream parity.
+3. Keep caller-supplied model clients and deployment choices intact throughout runtime and optimization.

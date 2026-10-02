@@ -307,7 +307,11 @@ public sealed class LitAgentRunner
                 var span = BuildSpanFromResult(attempted, execution, sequenceId);
                 await _store.AddSpanAsync(span, cancellationToken).ConfigureAwait(false);
 
-                return execution;
+                var storedRollout = await _store.GetRolloutByIdAsync(attempted.Rollout.RolloutId, cancellationToken).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException($"Rollout {attempted.Rollout.RolloutId} was not found after execution.");
+                var storedAttempt = await _store.GetLatestAttemptAsync(attempted.Rollout.RolloutId, cancellationToken).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException($"Attempt {attempted.Attempt.AttemptId} was not found after execution.");
+                return execution with { Rollout = storedRollout, Attempt = storedAttempt };
             }
 
             await HandleAttemptFailureAsync(attempted, cancellationToken).ConfigureAwait(false);

@@ -1,6 +1,8 @@
 using System;
 using ManagedCode.AgentLightning.Core.Models;
 using Microsoft.Extensions.AI;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ManagedCode.AgentLightning.AgentRuntime;
@@ -22,7 +24,12 @@ public static class LightningServiceCollectionExtensions
         services.AddOptions<LightningAgentOptions>()
             .Configure(configureOptions);
 
-        services.AddSingleton<LightningAgent>();
+        services.AddSingleton(serviceProvider => new LightningAgent(
+            serviceProvider.GetRequiredService<IChatClient>(),
+            serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LightningAgentOptions>>(),
+            serviceProvider.GetServices<Hook>(),
+            serviceProvider.GetRequiredService<ILogger<LightningAgent>>(),
+            serviceProvider.GetService<TimeProvider>()));
 
         return services;
     }
@@ -44,6 +51,32 @@ public static class LightningServiceCollectionExtensions
 
         services.AddSingleton<IChatClient>(chatClientFactory);
         return services.AddLightningAgent(configureOptions);
+    }
+
+
+    public static IServiceCollection AddLightningAgentFromAgentFramework(
+        this IServiceCollection services,
+        Action<LightningAgentOptions> configureOptions,
+        Func<IServiceProvider, AIAgent> agentFactory)
+    {
+        if (configureOptions is null)
+        {
+            throw new ArgumentNullException(nameof(configureOptions));
+        }
+
+        if (agentFactory is null)
+        {
+            throw new ArgumentNullException(nameof(agentFactory));
+        }
+
+        services.AddOptions<LightningAgentOptions>().Configure(configureOptions);
+        services.AddSingleton(serviceProvider => new LightningAgent(
+            agentFactory(serviceProvider),
+            serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LightningAgentOptions>>().Value,
+            serviceProvider.GetServices<Hook>(),
+            serviceProvider.GetRequiredService<ILogger<LightningAgent>>(),
+            serviceProvider.GetService<TimeProvider>()));
+        return services;
     }
 
     public static IServiceCollection AddLightningHooks(this IServiceCollection services, params Hook[] hooks)

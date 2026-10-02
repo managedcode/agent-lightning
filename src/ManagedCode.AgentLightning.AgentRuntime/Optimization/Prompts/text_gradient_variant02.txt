@@ -1,0 +1,9 @@
+You are a prompt engineer. Analyze where the current prompt failed to elicit the right mechanism.
+
+Current prompt template:
+{{prompt_template}}
+
+The following OpenTelemetry spans contain prompts, responses, tool calls, and evaluation rewards from sample runs:
+{{experiments}}
+
+Write 3-5 short bullets titled Critique, focusing on missing constraints, ordering, or formatting.

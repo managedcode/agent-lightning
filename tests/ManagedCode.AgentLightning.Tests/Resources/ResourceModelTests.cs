@@ -74,6 +74,59 @@ public class ResourceModelTests
     }
 
     [Fact]
+    public void PromptTemplateResource_Render_LeavesInsertedPlaceholderTextLiteral()
+    {
+        var template = new PromptTemplateResource
+        {
+            Template = "Value: {value}",
+            Engine = PromptTemplateEngine.FString,
+        };
+
+        template.Render(new Dictionary<string, object?>
+        {
+            ["value"] = "{missing}",
+        }).ShouldBe("Value: {missing}");
+    }
+
+    [Fact]
+    public void PromptTemplateResource_Render_HandlesEscapedBracesAndNestedField()
+    {
+        var template = new PromptTemplateResource
+        {
+            Template = "{{literal}} {{{value}}}",
+            Engine = PromptTemplateEngine.FString,
+        };
+
+        template.Render(new Dictionary<string, object?>
+        {
+            ["value"] = "{missing}",
+        }).ShouldBe("{literal} {{missing}}");
+    }
+
+    [Fact]
+    public void PromptTemplateResource_Render_ThrowsForMissingValuesEvenWhenVariablesAreEmpty()
+    {
+        var template = new PromptTemplateResource
+        {
+            Template = "Value: {missing}",
+            Engine = PromptTemplateEngine.FString,
+        };
+
+        Should.Throw<KeyNotFoundException>(() => template.Render(new Dictionary<string, object?>()));
+    }
+
+    [Theory]
+    [InlineData("Missing {field")]
+    [InlineData("Unexpected }")]
+    [InlineData("Unsupported {field:format}")]
+    public void PromptTemplateResource_Render_RejectsMalformedOrUnsupportedFields(string source)
+    {
+        var template = new PromptTemplateResource { Template = source, Engine = PromptTemplateEngine.FString };
+
+        Should.Throw<FormatException>(() => template.Render(new Dictionary<string, object?> { ["field"] = "value" }));
+    }
+
+    [Fact]
     public void PromptTemplateResource_Render_ThrowsForUnsupportedEngine()
     {
         var template = new PromptTemplateResource
@@ -82,6 +135,6 @@ public class ResourceModelTests
             Engine = PromptTemplateEngine.Jinja,
         };
 
-        Should.Throw<NotImplementedException>(() => template.Render(new Dictionary<string, object?>()));
+        Should.Throw<NotSupportedException>(() => template.Render(new Dictionary<string, object?>()));
     }
 }

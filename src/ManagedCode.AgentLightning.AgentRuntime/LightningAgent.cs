@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using ManagedCode.AgentLightning.Core.Models;
 using ManagedCode.AgentLightning.Core.Resources;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -13,12 +14,15 @@ namespace ManagedCode.AgentLightning.AgentRuntime;
 /// </summary>
 public sealed class LightningAgent : LitAgentBase<object>, IDisposable
 {
-    private readonly IChatClient _chatClient;
+    private readonly IChatClient? _chatClient;
+    private readonly AIAgent? _agentFrameworkAgent;
     private readonly ILogger<LightningAgent> _logger;
     private readonly LightningAgentOptions _options;
     private readonly IReadOnlyList<Hook> _hooks;
     private readonly TimeProvider _timeProvider;
     private bool _disposed;
+
+    public string PromptResourceName => _options.PromptResourceName;
 
     public LightningAgent(
         IChatClient chatClient,
@@ -36,8 +40,35 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
         IEnumerable<Hook>? hooks,
         ILogger<LightningAgent> logger,
         TimeProvider? timeProvider = null)
+        : this(chatClient ?? throw new ArgumentNullException(nameof(chatClient)), null, options, hooks, logger, timeProvider)
     {
-        _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
+    }
+
+    public LightningAgent(
+        AIAgent agent,
+        LightningAgentOptions options,
+        IEnumerable<Hook>? hooks,
+        ILogger<LightningAgent> logger,
+        TimeProvider? timeProvider = null)
+        : this(null, agent ?? throw new ArgumentNullException(nameof(agent)), options, hooks, logger, timeProvider)
+    {
+    }
+
+    private LightningAgent(
+        IChatClient? chatClient,
+        AIAgent? agent,
+        LightningAgentOptions options,
+        IEnumerable<Hook>? hooks,
+        ILogger<LightningAgent> logger,
+        TimeProvider? timeProvider)
+    {
+        if ((chatClient is null) == (agent is null))
+        {
+            throw new ArgumentException("Exactly one MEAI IChatClient or Microsoft Agent Framework AIAgent must be supplied.");
+        }
+
+        _chatClient = chatClient;
+        _agentFrameworkAgent = agent;
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _hooks = hooks?.ToArray() ?? Array.Empty<Hook>();
@@ -98,13 +129,12 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
         await InvokeHooksAsync(h => h.OnRolloutStartAsync(context, cancellationToken), cancellationToken).ConfigureAwait(false);
         rollout.TransitionTo(RolloutStatus.Running);
 
-        IReadOnlyList<ChatMessage> prompt = _options.BuildPrompt(taskInput);
-
         try
         {
-            var response = await _chatClient
-                .GetResponseAsync(prompt, _options.ChatOptions, cancellationToken)
-                .ConfigureAwait(false);
+            IReadOnlyList<ChatMessage> prompt = _options.BuildPrompt(taskInput, resources);
+            var response = _chatClient is not null
+                ? await _chatClient.GetResponseAsync(prompt, _options.ChatOptions, cancellationToken).ConfigureAwait(false)
+                : (await _agentFrameworkAgent!.RunAsync(prompt, cancellationToken: cancellationToken).ConfigureAwait(false)).AsChatResponse();
 
             attempt.UpdateStatus(AttemptStatus.Succeeded, _timeProvider.GetUtcNow());
 
@@ -124,7 +154,7 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
 
             await InvokeHooksAsync(h => h.OnTraceEndAsync(context, cancellationToken), cancellationToken).ConfigureAwait(false);
 
-            return new LightningExecutionResult(rollout, attempt, response, triplet);
+            return new LightningExecutionResult(rollout, attempt, response, triplet) { Messages = prompt };
         }
         catch (OperationCanceledException)
         {
@@ -154,7 +184,7 @@ public sealed class LightningAgent : LitAgentBase<object>, IDisposable
             return;
         }
 
-        _chatClient.Dispose();
+        _chatClient?.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

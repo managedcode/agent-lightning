@@ -1,0 +1,9 @@
+Revise the prompt to address one critique point clearly and effectively. Preserve all variable names in curly braces. Do not address more than one critique point; focus on the most critical issue. Keep the new prompt close in tone, length, and structure to the original.
+
+Prompt template:
+{{prompt_template}}
+
+Critique:
+{{critique}}
+
+Return only the revised full prompt. Do not include explanations or comparisons.

@@ -3,6 +3,7 @@ using ManagedCode.AgentLightning.Core.Models;
 using Microsoft.Extensions.Logging;
 using Shouldly;
 using Xunit;
+using ManagedCode.AgentLightning.Tests.TestHelpers;
 
 namespace ManagedCode.AgentLightning.Tests;
 
@@ -13,9 +14,9 @@ public sealed class LightningAgentTests
     {
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
         var agentLogger = loggerFactory.CreateLogger<LightningAgent>();
-        var chatClientLogger = loggerFactory.CreateLogger<LocalChatClient>();
+        var chatClientLogger = loggerFactory.CreateLogger<EchoChatClient>();
 
-        using var chatClient = new LocalChatClient(chatClientLogger);
+        using var chatClient = new EchoChatClient(chatClientLogger);
 
         var options = new LightningAgentOptions
         {

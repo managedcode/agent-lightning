@@ -1,103 +1,34 @@
 
-# ManagedCode Agent Lightning Migration Plan
+# ManagedCode Agent Lightning parity plan
 
-This plan tracks parity work between `external/microsoft-agent-lightning` (Python) and the C# port.
+This document tracks behavior against the read-only reference submodule `external/microsoft-agent-lightning`, pinned at `v0.2.0-39-g4cd09ec` (`4cd09ec`). The matrix describes that pinned v0.2 API and implementation; it does not claim parity with all of Microsoft Agent Lightning.
 
-## Status Legend
+The upstream v1 line is a larger GPU/RL rearchitecture. This repository is an embedded .NET library with no required Python process or remote optimization service, so GPU tensor training, VERL/vLLM backends, and their runtime orchestration are not implemented or claimed here.
 
-- ✅ Complete in C#
-- 🚧 Planned / not yet ported
-- ❓ Needs investigation / decide if we port
+## Parity matrix
 
-## Core Building Blocks
-
-| Component | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| Domain models | `agentlightning/types/core.py` | ✅ | `ManagedCode.AgentLightning.Core/Models` – rollout/attempt/triplet + hooks |
-| Tracing models | `agentlightning/types/tracer.py` | ✅ | `ManagedCode.AgentLightning.Core/Tracing` – span DTOs & helpers with OpenTelemetry tests |
-| Resources | `agentlightning/types/resources.py` | ✅ | `ManagedCode.AgentLightning.Core/Resources` – LLM/proxy/prompt resources mirrored |
-| LitAgent base | `agentlightning/litagent/litagent.py` | ✅ | `LitAgentBase<T>` with hook lifecycle, `LightningAgent` derives from it |
-| Adapter infrastructure | `agentlightning/adapter/base.py` | ✅ | `Adapters/Adapter`, `TraceAdapter`, `TraceToMessagesAdapter` implemented with tests |
-| Runner infrastructure | `agentlightning/runner/base.py` | ✅ | `LitAgentRunner` processes rollouts via LightningAgent and stores spans |
-| Store interface | `agentlightning/store/base.py` | ✅ | `ILightningStore` contract + `InMemoryLightningStore` covering queue/attempt/span lifecycle |
-| Trainer orchestration | `agentlightning/trainer/trainer.py` | ✅ | `Trainer` orchestrates batches via store + runner (tested) |
-
-## Span & Resource Adapters
-
-| Adapter | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| Trace → messages | `adapter/messages.py` | ✅ | `TraceToMessagesAdapter` translates GenAI spans into OpenAI chat payloads |
-| Trace → triplets | `adapter/triplet.py` | ✅ | `TracerTraceToTripletAdapter` exports triplets with reward policies |
-| OTEL trace adapter | `adapter/base.py` | 🚧 | Hook Activity -> SpanModel bridging |
-
-## Execution & Store Layers
-
-| Component | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| LightningStore (async) | `store/base.py` | ✅ | `ILightningStore` exposes start/enqueue/start-attempt, span sequencing, and wait semantics |
-| In-memory store | `store/memory.py` | ✅ | Expanded store handles attempts, spans, resources, and polling waits with thread-safe state |
-| Client/server bridge | `store/client_server.py` | ❓ | Decide ASP.NET hosting approach |
-| Runner execution strategies | `execution/*` | 🚧 | C# runner supports single-step execution, retry-aware polling, and resource hydration; parallel orchestration still pending |
-
-## Algorithms & Training Pipelines
-
-| Component | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| Algorithm base class | `algorithm/base.py` | 🚧 | Define async lifecycle (`SetupAsync`, `TrainAsync`, `TeardownAsync`) with dataset plumbing |
-| APO (Automatic Prompt Optimization) | `algorithm/apo/apo.py` | 🚧 | Requires prompt diffing, versioned templates, and evaluation harness |
-| Trainer legacy compat | `trainer/legacy.py` | 🚧 | Implement legacy hooks while aligning with new runner/store abstractions |
-| Trainer orchestration | `trainer/trainer.py` | 🚧 | Port training loop, scheduler, and algorithm/run coordination |
-| Registry/config utilities | `trainer/registry.py`, `trainer/init_utils.py` | 🚧 | Recreate component registration and config binding over `Options` |
-
-## Reward & Instrumentation
-
-| Component | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| Reward emitters | `emitter/reward.py`, `reward.py` | 🚧 | Implement reward span helpers with OTEL integration |
-| Message/object emitters | `emitter/message.py`, `emitter/object.py`, `emitter/utils.py` | 🚧 | Required for parity in trace adapters |
-| Instrumentation (AgentOps, LiteLLM, vLLM) | `instrumentation/*` | ❓ | Determine .NET bindings and optionality |
-| Logging utilities | `logging.py` | ✅ | Replaced with `Microsoft.Extensions.Logging` configuration helpers |
-
-## Fixtures, Docs & Tooling
-
-| Area | Status | Notes |
+| Pinned v0.2 component | Status | C# coverage and boundary |
 | --- | --- | --- |
-| Python fixture import | 🚧 | Need harness to reuse JSON/SQLite fixtures from submodule |
-| Integration test parity | 🚧 | Blocked until adapters, store, runner port complete |
-| Docs & README updates | 🚧 | Document hosting, configuration, and migration progress |
-| Packaging & CI | ✅ | .NET solution, format/test gates, and workflows in place |
+| Core rollout, attempt, triplet, hook, tracing, and resource types | ✅ | `ManagedCode.AgentLightning.Core` types, serialization, and tests. |
+| Trace/span conversion and trace-to-message/triplet adapters | ✅ | System.Diagnostics/OpenTelemetry adapters with focused tests; instrumentation remains caller-owned. |
+| Store contract and in-memory store | ✅ | Rollout, attempt, span, and resource lifecycle is available in process. Durable/distributed store parity is not included. |
+| Embedded runner and trainer | 🚧 | `LitAgentRunner` and `Trainer` execute local batches and bounded parallel rollouts. Python execution strategies, queue recovery, and the client/server store bridge are not equivalent. |
+| Runtime model invocation | ✅ | Caller supplies official MEAI `IChatClient` or MAF `AIAgent`. The port does not choose a provider, model deployment, billing route, or implement provider transports. |
+| APO textual-gradient and beam-search loop | ✅ | In-process prompt edit and validation loop; prompt templates are versioned in the result. It requires explicit named objective/direction or a caller score selector and rejects evaluation errors/missing metrics. |
+| Evaluation and reward evidence | ✅ | `Microsoft.Extensions.AI.Evaluation` metrics are recorded as reward spans; evaluator failures cannot be compared as zero. |
+| Algorithm lifecycle/base classes, registry, CLI, and legacy trainer compatibility | 🚧 | Not ported; APO is exposed directly over the in-process trainer. |
+| Python AgentOps/LiteLLM/vLLM instrumentation | 🚧 | Not ported; consumers use their supported MEAI/MAF instrumentation and OpenTelemetry setup. |
+| Python VERL/GPU training, tensor rollout, and remote orchestration | Out of scope | No Python process, GPU backend, or optimization service is required by this library. |
 
-## External Interfaces
+## Acceptance matrix
 
-| Component | Python Source | Status | Notes |
-| --- | --- | --- | --- |
-| Logging helpers | `logging.py` | ✅ | Using `Microsoft.Extensions.Logging` |
-| Legacy server/client | `server.py`, `client.py` | ❓ | Decide on support for legacy flows |
-
-## Test Parity
-
-| Area | Status | Notes |
+| Boundary | Acceptance evidence | State |
 | --- | --- | --- |
-| Core models & resources | ✅ | Unit tests in `ManagedCode.AgentLightning.Tests` |
-| Span conversions | ✅ | `Tracing/SpanModelTests` |
-| Resource helper coverage | ✅ | `Resources/ResourceModelTests` |
-| Adapter tests | 🚧 | Need to mirror upstream fixtures |
-| Runner/store/trainer integration | 🚧 | Blocked until components ported |
+| Source provenance | Submodule remains pinned to `v0.2.0-39-g4cd09ec`; CI initializes the submodule recursively. | Verified in repository metadata/workflow. |
+| Production AI client boundary | No custom/local client in production; runtime accepts MEAI or MAF abstractions. | Covered by package references and runtime construction paths. |
+| APO objective correctness | Explicit objective, direction, finite scalar result, missing objective rejection, and evaluator error rejection. | Covered by optimizer tests. |
+| APO data safety | Resource templates substitute only tokens authored in the embedded prompt file; caller prompt contents remain literal. | Covered by optimizer regression tests. |
+| Build/runtime compatibility | Target remains `net9.0`; build on SDK 9 CI. | Local verification uses SDK 10 with runtime roll-forward when SDK/runtime 9 is unavailable; this is not native runtime-9 execution proof. |
+| Release evidence | Exact expected package artifacts must publish/verify successfully before the release job runs. | Enforced by release workflow; actual feed availability is verified after publication. |
 
-## Completed Work
-
-- .NET 9 solution scaffolding with central package management
-- Core rollout/attempt models and runtime scaffolding (`LightningAgent` + `LocalChatClient`)
-- CI/CodeQL/release workflows (ManagedCode templates)
-- Span/resource models with OpenTelemetry conversions and unit coverage
-
-## Near-Term Priorities
-
-1. Expand runner execution strategies (parallel workers, retries, resource coordination).
-2. Reproduce key Python fixtures/tests for adapters, store logic, and integration flows.
-3. Stand up algorithm/trainer scaffolding (base class, APO components, legacy compat).
-4. Implement reward/message emitter instrumentation and vendor integration bindings.
-
-## Tracking Guidance
-
-Update this document whenever a component moves between statuses or when new design decisions affect parity.
+Update this matrix whenever a behavior changes status. Mark parity only for exercised behavior, and keep infrastructure or runtime limitations explicit.

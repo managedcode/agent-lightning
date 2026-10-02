@@ -17,9 +17,9 @@ public class TrainerTests
     private static (LightningAgent Agent, ILoggerFactory LoggerFactory) CreateAgent(string name)
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new NullLoggerProvider()));
-        var chatClientLogger = loggerFactory.CreateLogger<LocalChatClient>();
+        var chatClientLogger = loggerFactory.CreateLogger<EchoChatClient>();
         var agentLogger = loggerFactory.CreateLogger<LightningAgent>();
-        var chatClient = new LocalChatClient(chatClientLogger);
+        var chatClient = new EchoChatClient(chatClientLogger);
         var agent = new LightningAgent(
             chatClient,
             new LightningAgentOptions
@@ -46,5 +46,7 @@ public class TrainerTests
         var rollouts = await store.QueryRolloutsAsync();
         rollouts.Count.ShouldBe(3);
         rollouts.All(r => r.Status == RolloutStatus.Succeeded).ShouldBeTrue();
+        results.Select(result => result.Rollout.RolloutId).ToHashSet(StringComparer.Ordinal)
+            .SetEquals(rollouts.Select(rollout => rollout.RolloutId)).ShouldBeTrue();
     }
 }

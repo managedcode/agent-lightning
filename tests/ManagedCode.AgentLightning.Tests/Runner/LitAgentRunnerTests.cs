@@ -24,7 +24,7 @@ public class LitAgentRunnerTests
     {
         var factory = loggerFactory ?? LoggerFactory.Create(builder => builder.AddProvider(new NullLoggerProvider()));
         var agentLogger = factory.CreateLogger<LightningAgent>();
-        var client = chatClient ?? new LocalChatClient(factory.CreateLogger<LocalChatClient>());
+        var client = chatClient ?? new EchoChatClient(factory.CreateLogger<EchoChatClient>());
         var agent = new LightningAgent(
             client,
             options ?? new LightningAgentOptions

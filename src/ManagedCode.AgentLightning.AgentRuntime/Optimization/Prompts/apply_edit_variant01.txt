@@ -1,0 +1,9 @@
+Revise the prompt template using the critique as constraints and improvement guidance. Rewrite or restructure it when needed. Include any requested output format, structure, or word limit. Prefer mechanism-first phrasing: define what to do, then how to do it. Preserve every placeholder variable inside curly braces.
+
+Prompt template:
+{{prompt_template}}
+
+Critique:
+{{critique}}
+
+Return only the improved full prompt template with placeholders intact. Do not add an explanation, header, or introduction.

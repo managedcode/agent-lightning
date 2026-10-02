@@ -10,4 +10,7 @@ public sealed record LightningExecutionResult(
     Rollout Rollout,
     Attempt Attempt,
     ChatResponse Response,
-    Triplet Triplet);
+    Triplet Triplet)
+{
+    public IReadOnlyList<ChatMessage> Messages { get; init; } = Array.Empty<ChatMessage>();
+}

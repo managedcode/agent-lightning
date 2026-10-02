@@ -1,0 +1,9 @@
+You optimize a prompt template.
+
+Original prompt template:
+{{prompt_template}}
+
+Experiments with this prompt:
+{{experiments}}
+
+Produce a brief critique listing specific causes for errors or ways to raise the reward. Return concrete, testable changes to format, constraints, ordering, or definitions.

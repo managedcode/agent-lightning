@@ -185,35 +185,73 @@ public sealed record PromptTemplateResource : ResourceDefinition
     {
         if (Engine != PromptTemplateEngine.FString)
         {
-            throw new NotImplementedException("Rendering non f-string prompt templates is not supported yet.");
+            throw new NotSupportedException($"The '{Engine}' prompt template engine is not supported; only FString templates can be rendered.");
         }
 
-        if (variables is null || variables.Count == 0)
+        ArgumentNullException.ThrowIfNull(variables);
+        var output = new System.Text.StringBuilder(Template.Length);
+        for (var index = 0; index < Template.Length;)
         {
-            return Template;
-        }
-
-        var result = Template;
-        foreach (var (key, value) in variables)
-        {
-            if (string.IsNullOrEmpty(key))
+            var character = Template[index];
+            if (character == '{')
             {
+                if (index + 1 < Template.Length && Template[index + 1] == '{')
+                {
+                    output.Append('{');
+                    index += 2;
+                    continue;
+                }
+
+                var closingBrace = Template.IndexOf('}', index + 1);
+                if (closingBrace < 0)
+                {
+                    throw new FormatException("The prompt template contains an unmatched opening brace.");
+                }
+
+                var key = Template[(index + 1)..closingBrace];
+                if (!IsSimpleFieldName(key))
+                {
+                    throw new FormatException($"Prompt field '{key}' is malformed or uses unsupported formatting syntax.");
+                }
+
+                if (!variables.TryGetValue(key, out var value))
+                {
+                    throw new KeyNotFoundException($"Prompt field '{key}' has no supplied value.");
+                }
+
+                output.Append(FormatValue(value));
+                index = closingBrace + 1;
                 continue;
             }
 
-            var placeholder = $"{{{key}}}";
-            var replacement = value switch
+            if (character == '}')
             {
-                null => string.Empty,
-                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-                _ => value.ToString() ?? string.Empty,
-            };
+                if (index + 1 < Template.Length && Template[index + 1] == '}')
+                {
+                    output.Append('}');
+                    index += 2;
+                    continue;
+                }
 
-            result = result.Replace(placeholder, replacement, StringComparison.Ordinal);
+                throw new FormatException("The prompt template contains an unmatched closing brace.");
+            }
+
+            output.Append(character);
+            index++;
         }
 
-        return result;
+        return output.ToString();
     }
+
+    private static bool IsSimpleFieldName(string key) =>
+        key.Length > 0 && key.All(character => char.IsLetterOrDigit(character) || character == '_');
+
+    private static string FormatValue(object? value) => value switch
+    {
+        null => string.Empty,
+        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
+        _ => value.ToString() ?? string.Empty,
+    };
 }
 
 /// <summary>

@@ -1,23 +1,28 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace ManagedCode.AgentLightning.AgentRuntime;
+namespace ManagedCode.AgentLightning.Tests.TestHelpers;
 
 /// <summary>
-/// Simple <see cref="IChatClient"/> implementation that responds locally without contacting a remote provider.
-/// Useful for smoke tests and CLI experimentation.
+/// Deterministic test-only chat client.
 /// </summary>
-public sealed class LocalChatClient : IChatClient
+public sealed class EchoChatClient : IChatClient
 {
-    private readonly ILogger<LocalChatClient> _logger;
+    private readonly ILogger<EchoChatClient> _logger;
+    private readonly Func<IEnumerable<ChatMessage>, string>? _responseFactory;
+    private readonly ConcurrentQueue<ChatOptions?> _requestOptions = new();
     private bool _disposed;
 
-    public LocalChatClient(ILogger<LocalChatClient> logger)
+    public EchoChatClient(ILogger<EchoChatClient> logger, Func<IEnumerable<ChatMessage>, string>? responseFactory = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _responseFactory = responseFactory;
     }
+
+    public IReadOnlyList<ChatOptions?> RequestOptions => _requestOptions.ToArray();
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -31,13 +36,15 @@ public sealed class LocalChatClient : IChatClient
             throw new ArgumentNullException(nameof(messages));
         }
 
-        var reply = GenerateReply(messages);
+        var messageList = messages?.ToArray() ?? throw new ArgumentNullException(nameof(messages));
+        _requestOptions.Enqueue(options);
+        var reply = _responseFactory?.Invoke(messageList) ?? GenerateReply(messageList);
         var responseMessage = new ChatMessage(ChatRole.Assistant, reply)
         {
             CreatedAt = DateTimeOffset.UtcNow,
             AdditionalProperties = new AdditionalPropertiesDictionary
             {
-                ["provider"] = nameof(LocalChatClient),
+                ["provider"] = nameof(EchoChatClient),
                 ["temperature"] = options?.Temperature,
             },
         };
@@ -45,7 +52,7 @@ public sealed class LocalChatClient : IChatClient
         return Task.FromResult(new ChatResponse(responseMessage)
         {
             CreatedAt = responseMessage.CreatedAt,
-            ModelId = nameof(LocalChatClient),
+            ModelId = nameof(EchoChatClient),
             FinishReason = ChatFinishReason.Stop,
         });
     }
@@ -111,7 +118,7 @@ public sealed class LocalChatClient : IChatClient
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(LocalChatClient));
+            throw new ObjectDisposedException(nameof(EchoChatClient));
         }
     }
 }

@@ -1,20 +1,19 @@
 <Project>
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <EnablePreviewFeatures>true</EnablePreviewFeatures>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
     <Authors>ManagedCode</Authors>
     <Company>ManagedCode</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/managedcode/agent-lightning</RepositoryUrl>
     <PackageProjectUrl>https://github.com/managedcode/agent-lightning</PackageProjectUrl>
-    <Description>.NET port of Microsoft Agent Lightning built on Microsoft.Extensions.AI.</Description>
+    <Description>.NET port of Microsoft Agent Lightning built on Microsoft.Extensions.AI and Microsoft Agent Framework.</Description>
     <PackageTags>agents;ai;reinforcement-learning</PackageTags>
   </PropertyGroup>
   <ItemGroup>
