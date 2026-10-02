@@ -7,7 +7,7 @@
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Authors>ManagedCode</Authors>
     <Company>ManagedCode</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

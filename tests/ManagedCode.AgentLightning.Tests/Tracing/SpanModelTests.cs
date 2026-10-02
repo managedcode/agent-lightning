@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json;
 using ManagedCode.AgentLightning.Core.Tracing;
 using OpenTelemetry.Resources;
 using Shouldly;
@@ -131,5 +132,34 @@ public class SpanModelTests
 
         span.Attributes.ContainsKey("complex").ShouldBeTrue();
         span.Attributes["complex"].ShouldBe(activity.GetTagItem("complex")!.ToString());
+    }
+
+    [Fact]
+    public void FromActivity_TraceModelRemainsJsonSerializable()
+    {
+        using var source = new ActivitySource("ManagedCode.AgentLightning.Tests.Serialization");
+        using var activity = source.StartActivity("serialized-span", ActivityKind.Client)!;
+        activity.SetTag("agent.rollout", "rollout-serialized");
+        activity.AddEvent(new ActivityEvent("reward", tags: new ActivityTagsCollection(new Dictionary<string, object?>
+        {
+            ["value"] = 0.75,
+        })));
+        activity.AddLink(new ActivityLink(
+            new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(), ActivityTraceFlags.Recorded)));
+        activity.Stop();
+
+        var resource = ResourceBuilder.CreateEmpty()
+            .AddAttributes(new Dictionary<string, object> { ["service.name"] = "serialized-agent" })
+            .Build();
+        var span = SpanModel.FromActivity(activity, "rollout-serialized", "attempt-serialized", 4, resource);
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(span));
+        var serialized = document.RootElement;
+        serialized.GetProperty("RolloutId").GetString().ShouldBe("rollout-serialized");
+        serialized.GetProperty("Name").GetString().ShouldBe("serialized-span");
+        serialized.GetProperty("Attributes").GetProperty("agent.rollout").GetString().ShouldBe("rollout-serialized");
+        serialized.GetProperty("Events")[0].GetProperty("Name").GetString().ShouldBe("reward");
+        serialized.GetProperty("Links").GetArrayLength().ShouldBe(1);
+        serialized.GetProperty("Resource").GetProperty("Attributes").GetProperty("service.name").GetString().ShouldBe("serialized-agent");
     }
 }
