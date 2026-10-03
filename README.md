@@ -1,58 +1,48 @@
-# ManagedCode Agent Lightning ⚡
+# ManagedCode Agent Lightning for .NET
 
-> **ℹ️ This repository hosts the ManagedCode-maintained C# 13 / .NET 9 embedded port of Microsoft Agent Lightning.**
-> The original Python implementation remains the functional reference and is mirrored under `external/microsoft-agent-lightning` as a read-only git submodule. All active development happens in the `ManagedCode.AgentLightning.*` C# projects.
+ManagedCode Agent Lightning is an embedded .NET port of Microsoft Agent Lightning. It provides in-process rollouts, tracing, evaluation, and textual Automatic Prompt Optimization (APO) using `Microsoft.Extensions.AI`, `Microsoft.Extensions.AI.Evaluation`, and Microsoft Agent Framework. Applications supply their own official MEAI `IChatClient` or MAF `AIAgent` and evaluator; this library does not select a provider, deployment, billing route, or model.
 
-## Overview
+The released implementation does not require a Python process or remote optimization service. The upstream Python project is [Microsoft Agent Lightning](https://github.com/microsoft/agent-lightning), pinned for parity provenance at commit `4cd09ec900894cbcc0e832f1acfc3cbc1e2022b8` (`v0.2.0-39-g4cd09ec`). The source is retained as a read-only reference and is not a runtime dependency.
 
-ManagedCode Agent Lightning provides in-process rollouts, tracing, evaluation, and textual Automatic Prompt Optimization (APO) for .NET agents. It uses `Microsoft.Extensions.AI`, `Microsoft.Extensions.AI.Evaluation`, and Microsoft Agent Framework. The caller supplies the runtime and evaluation clients, so the library does not choose a provider, deployment, or model on the caller's behalf.
+This port implements textual prompt optimization and measured evaluation. It does not implement GPU/tensor training, VERL/vLLM execution, model-weight updates, or native checkpoint resume. See the parity matrix for implemented and unsupported upstream components.
 
-No Python process or remote optimization service is required. The Python sources are retained as a read-only reference at the pinned submodule revision documented in [`MIGRATION_PLAN.md`](./MIGRATION_PLAN.md).
+## Install
 
-This is not a GPU or tensor-training backend. The upstream v1 GPU/RL stack and provider-specific instrumentation are not implemented here; parity is tracked component by component rather than claimed for the entire Python repository.
+The runtime package depends on the core package and is the normal entry point:
 
-## Repository Layout
+```bash
+dotnet add package ManagedCode.AgentLightning.AgentRuntime --version 0.0.3
+```
 
-| Path | Description |
-|------|-------------|
-| `src/ManagedCode.AgentLightning.Core` | Core domain models (`Rollout`, `Attempt`, hooks, metadata primitives). |
-| `src/ManagedCode.AgentLightning.AgentRuntime` | In-process rollout/trainer, MEAI and MAF runtime adapters, evaluation recording, and textual APO. |
-| `tests/ManagedCode.AgentLightning.Tests` | xUnit tests for the C# implementation (no Python dependencies). |
-| `external/microsoft-agent-lightning` | Upstream Python repository (git submodule, kept read-only). |
-| `MIGRATION_PLAN.md` | Module-by-module parity tracker for the migration process. |
-| `AGENTS.md` | Working agreements and guardrails specific to this port. |
+Use `ManagedCode.AgentLightning.Core` directly only when an application needs the data, store, tracing, or resource contracts without the in-process runtime:
 
-## Prerequisites
+```bash
+dotnet add package ManagedCode.AgentLightning.Core --version 0.0.3
+```
 
-- .NET SDK 9.0.300 or later.
-- Git with submodule support to check out the pinned parity reference used by CI.
+The model and evaluator remain application-owned. Configure them through Microsoft.Extensions.AI or Microsoft Agent Framework and pass those clients into the runtime; the library does not create provider-specific clients or make network calls itself.
 
-## Getting Started
+## Build and test from source
+
+Requirements: .NET SDK 9.0.300 or later. Building and using the NuGet packages does not require Python.
 
 ```bash
 git clone https://github.com/managedcode/agent-lightning.git
 cd agent-lightning
-git submodule update --init --recursive
-
 dotnet restore
 dotnet format --verify-no-changes
 dotnet test
 ```
 
-## Project Status
+The active implementation is under `src/ManagedCode.AgentLightning.*`; xUnit tests are under `tests/ManagedCode.AgentLightning.Tests`. CI builds, formats, and tests the .NET solution.
 
-- ✔ Core rollout/attempt models ported to C# with parity-focused semantics.  
-- ✔ In-process rollouts with caller-supplied MEAI `IChatClient` or MAF `AIAgent`.
-- ✔ MEAI.Evaluation-based APO with explicit objective selection, validation, versioned prompt history, and trace rewards.
-- ✔ CI, CodeQL, and NuGet release workflows based on .NET tooling.
-- 🛠 Remaining pinned-v0.2 parity and deliberately excluded upstream v1 GPU features are listed in [`MIGRATION_PLAN.md`](./MIGRATION_PLAN.md).
+## Scope and parity
+
+The package supports in-process rollouts and the released textual APO loop. APO requires an explicit named objective and direction, or a caller-provided score selector, and rejects failed or missing evaluation evidence. It retains prompt versions and evaluation/reward traces. It is not a general-purpose model-training framework: upstream GPU/RL, tensor training, VERL/vLLM backends, and provider-specific instrumentation are not included. Remaining pinned-v0.2 differences are tracked in [`MIGRATION_PLAN.md`](./MIGRATION_PLAN.md); no complete upstream parity claim is made.
 
 ## Contributing
 
-1. Fork the repository and branch from `main`.
-2. Run `dotnet format --verify-no-changes` followed by the full `dotnet test` suite before submitting changes.
-3. Update `MIGRATION_PLAN.md` with any new parity milestones or design decisions.
-4. Submit a pull request describing the ported functionality and tests.
+Run `dotnet format --verify-no-changes` and the full `dotnet test` suite before submitting changes. Update `MIGRATION_PLAN.md` when parity status changes.
 
 ## License
 

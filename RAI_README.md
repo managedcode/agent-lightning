@@ -1,77 +1,23 @@
-# Responsible AI Transparency Documentation - ManagedCode Agent Lightning
+# Responsible AI information
 
-## OVERVIEW
+ManagedCode Agent Lightning for .NET is an embedded library for running agent rollouts, recording evaluation evidence, and optimizing authored prompt text. It uses application-supplied Microsoft.Extensions.AI or Microsoft Agent Framework clients and Microsoft.Extensions.AI.Evaluation. The package does not choose a model provider, connect to a provider, train model weights, or run a Python service.
 
-ManagedCode Agent Lightning is the .NET port of Microsoft’s Agent Lightning project. It is a flexible and extensible framework that enables seamless agent optimization for any existing agent framework. Agent optimization includes various data-driven techniques to customize the agent for better performance, including but not limited to model fine-tuning, prompt tuning, and model selection. The agent frameworks include popular and easy-to-use environments such as OpenAI Agents SDK, Microsoft AutoGen, and LangChain, as well as ManagedCode-first integrations that rely on `Microsoft.Extensions.AI`.
+## Intended use
 
-### WHAT CAN AGENT LIGHTNING DO
-Agent lightning was developed to bridge the gap between agent workflow development and agent optimization, empowering developers to go beyond static, pre-trained models and unlock the full potential of adaptive, learning-based agents. Agent Lightning is a training framework which can be used for any LLMs.
+The library is intended for developers who can configure and evaluate their own agents. Its released optimization capability is textual Automatic Prompt Optimization: it proposes prompt edits and compares them using caller-configured evaluation metrics and objectives. It does not fine-tune or otherwise update model weights.
 
-### INTENDED USES
-Agent Lightning is best suited for agent researchers and developers. They can easily fine-tune models in existing agent frameworks with Agent Lightning. This can improve model performance on the targeted scenarios.
+Evaluation results depend on the caller's models, data, prompts, and metric configuration. Developers should use representative test data, inspect proposed prompt changes, and retain human review for consequential decisions. A measured score is not a guarantee of factual correctness, safety, fairness, or suitability for deployment.
 
-### OUT-OF-SCOPE USES
-Agent Lightning is not well-suited for users who are not familiar with agent development and machine learning concepts.
+## Limitations
 
-We do not recommend using Agent Lightning in commercial or real-world applications without further testing and development. It is being released for research purposes.
+The .NET port is not the upstream GPU/tensor-training stack. GPU reinforcement learning, VERL/vLLM execution, model-weight training, native checkpoint resume, and upstream provider-specific instrumentation are not implemented. The repository's parity matrix records current coverage and differences.
 
-Agent Lightning was not designed or evaluated for all possible downstream purposes. Developers should consider its inherent limitations as they select use cases, and evaluate and mitigate for accuracy, safety, and fairness concerns specific to each intended downstream use.
+Do not use model outputs as the sole basis for high-impact decisions in legal, financial, healthcare, employment, or similarly consequential settings. Evaluate accuracy, privacy, security, bias, and applicable policies for the specific application before deployment.
 
-Agent Lightning should not be used in highly regulated domains where inaccurate outputs could suggest actions that lead to injury or negatively impact an individual's legal, financial, or life opportunities.
+## Data and privacy
 
-We do not recommend using Agent Lightning in the context of high-risk decision making (e.g. in law enforcement, legal, finance, or healthcare).
+The library operates on the data passed to it by the host application. The host selects the model client, evaluator, storage implementation, and telemetry configuration, and is responsible for their data handling, retention, access controls, and applicable legal requirements. Review the policies of any model or telemetry provider configured by the application.
 
-## HOW TO GET STARTED
-To begin using Agent Lightning, here are some instructions.
-1.	Install dependencies, including Python, uv, PyTorch, FlashAttention, vLLM, verl.
-2.	Clone and install Agent Lightning.
-3.	Convert the dataset (provided by the user) into parquet file, which contains multiple columns. Each column contains a data id, an input and an expected output.
-4.	Run agent, which is developed by the user.
-5.	Run the training process via “bash train.sh”
+## Provenance and license
 
-## EVALUATION
-Agent Lightning was evaluated on its ability to correctly complete 3 example tasks: (1) Math. The model needs to answer some math questions, and when answering one question, the model can use the calculator as its tool to help answer. (2) Text2SQL. The model is given a question related to the database, and it is required to generate a SQL which can query the database, find the information to answer the question. (3) Retrieval-Augmented Generation (RAG). The model is given a question which needs some information from Wikipedia to answer. The model is required to generate some queries to find the related information in Wikipedia, and answer the question according to retrieved documents.
-
-### EVALUATION METHODS AND RESULTS
-For detailed evaluation methods and results, please refer to the latest version of our  [technical report](https://arxiv.org/abs/2508.03680).
-
-
-## LIMITATIONS
-Agent Lightning was developed for research and experimental purposes. Further testing and validation are needed before considering its application in commercial or real-world scenarios.
-
-Agent Lightning was designed and tested using the English language. Performance in other languages may vary and should be assessed by someone who is both an expert in the expected outputs and a native speaker of that language.
-
-Outputs generated by AI may include factual errors, fabrication, or speculation. Users are responsible for assessing the accuracy of generated content. All decisions leveraging outputs of the system should be made with human oversight and not be based solely on system outputs.
-Agent Lightning inherits any biases, errors, or omissions produced by its base model. Developers are advised to choose an appropriate base LLM/MLLM carefully, depending on the intended use case.
-We use some demo cases to show the effectiveness of our training framework. See their links to understand the capabilities and limitations of this model.
-
-## BEST PRACTICES
-Better performance can be achieved by following the instructions in how to get started section.
-
-We strongly encourage users to use LLMs/MLLMs that support robust Responsible AI mitigations, such as Azure Open AI (AOAI) services. Such services continually update their safety and RAI mitigations with the latest industry standards for responsible use. For more on AOAI’s best practices when employing foundations models for scripts and applications:
-- [Blog post on responsible AI features in AOAI that were presented at Ignite 2023](https://techcommunity.microsoft.com/t5/ai-azure-ai-services-blog/announcing-new-ai-safety-amp-responsible-ai-features-in-azure/ba-p/3983686)
-- [Overview of Responsible AI practices for Azure OpenAI models](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/overview)
-- [Azure OpenAI Transparency Note](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/transparency-note)
-- [OpenAI’s Usage policies](https://openai.com/policies/usage-policies)
-- [Azure OpenAI’s Code of Conduct](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/code-of-conduct)
-
-Users are responsible for sourcing their datasets legally and ethically. This could include securing appropriate rights, ensuring consent for use of audio/images, and/or the anonymization of data prior to use in research.
-
-Users are reminded to be mindful of data privacy concerns and are encouraged to review the privacy policies associated with any models and data storage solutions interfacing with Agent Lightning.
-
-It is the user’s responsibility to ensure that the use of Agent Lightning complies with relevant data protection regulations and organizational guidelines.
-
-## LICENSE
-We use the MIT license.
-
-## CONTACT
-We welcome feedback and collaboration from our audience. If you have suggestions, questions, or observe unexpected/offensive behavior in our technology, please contact us at agent-lightning@microsoft.com.
-
-If the team receives reports of undesired behavior or identifies issues independently, we will update this repository with appropriate mitigations.
-
-
-
----
-
-*Last updated: September 6, 2025*
-*Document version: 1.0*
+This repository is a .NET port of Microsoft's Agent Lightning project. The upstream source project is [microsoft/agent-lightning](https://github.com/microsoft/agent-lightning); the compared v0.2 source revision is `4cd09ec900894cbcc0e832f1acfc3cbc1e2022b8`. The reference source is not a runtime dependency. This project is distributed under the [MIT License](./LICENSE).
