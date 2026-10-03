@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the working agreements for porting Microsoft Agent Lightning from Python to a C# 13 / .NET 9 implementation maintained under the ManagedCode namespace and powered by Microsoft Agent Framework plus `Microsoft.Extensions.AI`. The canonical Python sources live in the `external/microsoft-agent-lightning` submodule and remain the reference until feature parity is achieved.
+This document captures the working agreements for the ManagedCode C# 13 / .NET 9 port of Microsoft Agent Lightning, powered by Microsoft Agent Framework plus `Microsoft.Extensions.AI`. The upstream source project, MIT license, and exact parity reference commit are recorded in `UPSTREAM-PROVENANCE.md`. Upstream Python code is not part of the active .NET tree or a build/runtime dependency.
 
 # Conversations
 
@@ -29,7 +29,7 @@ Update guidelines:
 ---
 
 ## Rules To Follow
-- for Agent Lightning migration tasks, ALWAYS mirror functionality, tests, and docs from `external/microsoft-agent-lightning`; treat the submodule as the canonical specification and never modify it directly
+- for Agent Lightning parity tasks, compare behavior with the upstream source at the revision recorded in `UPSTREAM-PROVENANCE.md`; preserve upstream attribution while keeping Python implementation files, examples, tests, and tooling out of the active .NET repository
 - for Agent Lightning migration tasks, NEVER ship mocks, stubs, or placeholder implementations—port real behaviour before closing a task
 - for Agent Lightning runtime work, use only Microsoft Agent Framework and `Microsoft.Extensions.AI`; use `Microsoft.Extensions.AI.Evaluation` for evaluation, and keep every fake or local test client in test-only projects
 - for Agent Lightning migration tasks, pursue the migration plan end-to-end without pausing to ask for clarification mid-task; deliver completed work unless the user explicitly redirects
@@ -47,16 +47,15 @@ Update guidelines:
 
 ## Solution Layout
 
-- `external/microsoft-agent-lightning` – vendored Python sources used for parity checks and fixtures.
 - `src/ManagedCode.AgentLightning.Core` – shared domain models (`Rollout`, `Attempt`, hooks, etc.).
 - `src/ManagedCode.AgentLightning.AgentRuntime` – runtime orchestration built atop `Microsoft.Extensions.AI`.
 - `tests/ManagedCode.AgentLightning.Tests` – xUnit suite validating runtime behaviour and parity scenarios.
 - `.github/workflows` – CI/CodeQL/release pipelines mirrored from ManagedCode Communication.
-- `MIGRATION_PLAN.md` – evergreen tracker for module-by-module parity progress.
+- `MIGRATION_PLAN.md` – upstream provenance and module-by-module parity tracker.
 
 ## Current Status
 
-- Python repository wired in as a submodule for reference.
+- Upstream source URL, license, and source revision are pinned in `UPSTREAM-PROVENANCE.md` and source Git history.
 - .NET solution scaffolding in place with central package management and packaging metadata.
 - Core rollout and attempt models ported to C# with concurrency-safe metadata.
 - The runtime uses caller-supplied MEAI `IChatClient` or MAF `AIAgent`; deterministic echo clients exist only in tests.

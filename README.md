@@ -2,7 +2,7 @@
 
 ManagedCode Agent Lightning is an embedded .NET port of Microsoft Agent Lightning. It provides in-process rollouts, tracing, evaluation, and textual Automatic Prompt Optimization (APO) using `Microsoft.Extensions.AI`, `Microsoft.Extensions.AI.Evaluation`, and Microsoft Agent Framework. Applications supply their own official MEAI `IChatClient` or MAF `AIAgent` and evaluator; this library does not select a provider, deployment, billing route, or model.
 
-The released implementation does not require a Python process or remote optimization service. The upstream Python project is [Microsoft Agent Lightning](https://github.com/microsoft/agent-lightning), pinned for parity provenance at commit `4cd09ec900894cbcc0e832f1acfc3cbc1e2022b8` (`v0.2.0-39-g4cd09ec`). The source is retained as a read-only reference and is not a runtime dependency.
+The released implementation does not require a Python process or remote optimization service. Upstream project identity and the exact parity source revision are recorded in [`UPSTREAM-PROVENANCE.md`](./UPSTREAM-PROVENANCE.md); upstream Python source is not part of the active .NET tree or a build/runtime dependency.
 
 This port implements textual prompt optimization and measured evaluation. It does not implement GPU/tensor training, VERL/vLLM execution, model-weight updates, or native checkpoint resume. See the parity matrix for implemented and unsupported upstream components.
 
@@ -24,7 +24,7 @@ The model and evaluator remain application-owned. Configure them through Microso
 
 ## Build and test from source
 
-Requirements: .NET SDK 9.0.300 or later. Building and using the NuGet packages does not require Python.
+Requirements: .NET SDK 9.0.300 or later. Building and using the NuGet packages does not require Python or an upstream source checkout.
 
 ```bash
 git clone https://github.com/managedcode/agent-lightning.git

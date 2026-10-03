@@ -1,7 +1,7 @@
 
 # ManagedCode Agent Lightning parity plan
 
-This document tracks behavior against the read-only reference submodule `external/microsoft-agent-lightning`, pinned at `v0.2.0-39-g4cd09ec` (`4cd09ec`). The matrix describes that pinned v0.2 API and implementation; it does not claim parity with all of Microsoft Agent Lightning.
+This document tracks behavior against the Microsoft upstream project and source revision recorded in [`UPSTREAM-PROVENANCE.md`](./UPSTREAM-PROVENANCE.md). The matrix describes that pinned v0.2 API and implementation; it does not claim parity with all of Microsoft Agent Lightning. Upstream Python source is not part of the active .NET tree or a build/runtime dependency.
 
 The upstream v1 line is a larger GPU/RL rearchitecture. This repository is an embedded .NET library with no required Python process or remote optimization service, so GPU tensor training, VERL/vLLM backends, and their runtime orchestration are not implemented or claimed here.
 
@@ -24,7 +24,7 @@ The upstream v1 line is a larger GPU/RL rearchitecture. This repository is an em
 
 | Boundary | Acceptance evidence | State |
 | --- | --- | --- |
-| Source provenance | Submodule remains pinned to `v0.2.0-39-g4cd09ec`; CI initializes the submodule recursively. | Verified in repository metadata/workflow. |
+| Source provenance | Microsoft upstream URL, MIT license, and exact reference commit are recorded in `UPSTREAM-PROVENANCE.md` and source Git history. | Verified against the recorded commit and upstream license. |
 | Production AI client boundary | No custom/local client in production; runtime accepts MEAI or MAF abstractions. | Covered by package references and runtime construction paths. |
 | APO objective correctness | Explicit objective, direction, finite scalar result, missing objective rejection, and evaluator error rejection. | Covered by optimizer tests. |
 | APO data safety | Resource templates substitute only tokens authored in the embedded prompt file; caller prompt contents remain literal. | Covered by optimizer regression tests. |

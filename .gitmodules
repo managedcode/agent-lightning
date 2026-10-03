@@ -1,3 +1,0 @@
-[submodule "external/microsoft-agent-lightning"]
-	path = external/microsoft-agent-lightning
-	url = https://github.com/microsoft/agent-lightning.git
